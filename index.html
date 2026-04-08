@@ -712,7 +712,7 @@
                     <i class="bi bi-table"></i>
                     需求列表
                 </div>
-                <button class="refresh-btn" onclick="loadRequirements()">
+                <button class="refresh-btn" onclick="fetchRequirements()">
                     <i class="bi bi-arrow-clockwise"></i>
                     刷新
                 </button>
@@ -812,33 +812,55 @@
     </div>
 
     <script>
-        // Supabase 配置
-        const supabaseUrl = 'https://gcetwdskijgnegzvsxta.supabase.co';
-        const supabaseAnonKey = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-        // 全局需求数据数组
+        // 全局变量
         let requirementsData = [];
+        let supabase = null;
 
-        // 页面加载时渲染表格
+        // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
-            loadRequirements();
+            try {
+                // Supabase 配置 - 只初始化一次
+                const supabaseUrl = 'https://gcetwdskijgnegzvsxta.supabase.co';
+                const supabaseAnonKey = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
+                supabase = createClient(supabaseUrl, supabaseAnonKey);
+                console.log('Supabase 初始化成功');
+            } catch (error) {
+                console.error('Supabase 初始化失败:', error);
+                showToast('Supabase 初始化失败，将使用本地示例数据');
+            }
+            
+            // 加载数据
+            fetchRequirements();
         });
 
-        // 加载需求数据
-        async function loadRequirements() {
+        // 从云端获取需求数据
+        async function fetchRequirements() {
             const loading = document.getElementById('loading');
             loading.style.display = 'flex';
             
             try {
+                if (!supabase) {
+                    console.warn('Supabase 未初始化，使用本地示例数据');
+                    useSampleData();
+                    return;
+                }
+                
                 const { data, error } = await supabase
                     .from('requirements')
                     .select('*')
                     .order('created_at', { ascending: false });
                 
+                console.log('从云端获取到的数据:', data);
+                
                 if (error) {
                     console.error('加载需求数据失败:', error);
                     showToast('加载数据失败，请重试');
+                    // 显示初始示例数据
+                    useSampleData();
+                } else if (!data || data.length === 0) {
+                    // 如果数据库为空，使用初始示例数据
+                    console.log('数据库为空，使用示例数据');
+                    useSampleData();
                 } else {
                     requirementsData = data;
                     renderTable();
@@ -847,9 +869,56 @@
             } catch (error) {
                 console.error('加载需求数据异常:', error);
                 showToast('加载数据异常，请重试');
+                // 显示初始示例数据
+                useSampleData();
             } finally {
                 loading.style.display = 'none';
             }
+        }
+
+        // 使用示例数据
+        function useSampleData() {
+            // 初始示例数据
+            requirementsData = [
+                {
+                    id: 3,
+                    system: '客户关系系统',
+                    description: '修复客户数据导入功能\n技术难点需要攻关',
+                    owner: '王五',
+                    status: '已延期',
+                    created_at: '2026-03-20T03:01:00',
+                    plan_time: '2026-03-19T11:01:00'
+                },
+                {
+                    id: 1,
+                    system: '财务系统',
+                    description: '完成2024年第四季度财务报表编制\n需要与审计部门协调',
+                    owner: '张三',
+                    status: '进行中',
+                    created_at: '2026-03-20T03:01:00',
+                    plan_time: '2026-03-24T11:01:00'
+                },
+                {
+                    id: 2,
+                    system: '人力资源系统',
+                    description: '更新员工绩效考核模块\n等待需求确认',
+                    owner: '李四',
+                    status: '待处理',
+                    created_at: '2026-03-20T03:01:00',
+                    plan_time: '2026-03-28T11:01:00'
+                },
+                {
+                    id: 4,
+                    system: '资产管理系统',
+                    description: '另外这个文案也调整一下：您有x个即将到期或已到期的x。表格里最后一列，看看能不能直接把续期链接加进去。如果所有人都是同一个模板，模板里的每个人不一样，那就把续期链接放进去，一点就能够和在资产管理系统上点续期是一样的效果。',
+                    owner: '待分配',
+                    status: '待排期',
+                    created_at: '2026-03-20T03:08:00',
+                    plan_time: '2026-03-28T11:07:00'
+                }
+            ];
+            renderTable();
+            calculateStats();
         }
 
         // 渲染表格
@@ -1378,6 +1447,11 @@
             }
             
             try {
+                if (!supabase) {
+                    showToast('Supabase 未初始化，无法保存数据');
+                    return;
+                }
+                
                 if (id) {
                     // 编辑模式
                     const { data, error } = await supabase
@@ -1398,7 +1472,7 @@
                     } else {
                         showToast(`需求 #${id} 更新成功！`);
                         // 重新加载数据
-                        await loadRequirements();
+                        await fetchRequirements();
                     }
                 } else {
                     // 新增模式
@@ -1420,7 +1494,7 @@
                     } else {
                         showToast('新增需求成功！');
                         // 重新加载数据
-                        await loadRequirements();
+                        await fetchRequirements();
                     }
                 }
             } catch (error) {
@@ -1443,6 +1517,11 @@
             if (event) event.stopPropagation();
             if (confirm(`确定要删除需求 #${id} 吗？`)) {
                 try {
+                    if (!supabase) {
+                        showToast('Supabase 未初始化，无法删除数据');
+                        return;
+                    }
+                    
                     const { error } = await supabase
                         .from('requirements')
                         .delete()
@@ -1454,7 +1533,7 @@
                     } else {
                         showToast(`需求 #${id} 已删除`);
                         // 重新加载数据
-                        await loadRequirements();
+                        await fetchRequirements();
                     }
                 } catch (error) {
                     console.error('删除需求异常:', error);
