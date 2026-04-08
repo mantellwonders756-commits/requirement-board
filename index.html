@@ -8,153 +8,99 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary: #6366f1; --bg: #f8fafc; --card-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        :root { --primary: #6366f1; --bg: #f8fafc; }
         body { background: var(--bg); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #334155; }
         
-        /* 顶部导航复原 */
+        /* 顶部导航 */
         .navbar { background: white; border-bottom: 1px solid #edf2f7; padding: 1rem 0; }
-        .nav-link { color: #64748b; font-size: 14px; margin-left: 20px; }
 
-        /* AI 录入区复原 */
-        .quick-input-card { border: none; border-radius: 20px; box-shadow: var(--card-shadow); padding: 30px; margin-top: 30px; }
-        .ai-hint { color: #94a3b8; font-size: 13px; margin-bottom: 15px; }
-        .ai-examples { color: #94a3b8; font-size: 12px; margin-top: 15px; }
-        .ai-textarea { border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; font-size: 14px; background: #fcfcfc; }
+        /* 智能快速录入卡片 */
+        .quick-input-card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; background: white; margin-top: 25px; }
+        .ai-title { font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .ai-hint { color: #94a3b8; font-size: 13px; margin-bottom: 10px; }
+        .ai-textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 14px; background: #fcfcfc; }
+        .ai-examples { color: #94a3b8; font-size: 12px; margin-top: 12px; }
 
-        /* 统计卡片复原 */
-        .stat-card { border: none; border-radius: 16px; padding: 25px; color: white; position: relative; overflow: hidden; height: 130px; }
-        .stat-card h3 { font-size: 32px; font-weight: 700; margin-bottom: 5px; }
+        /* 渐变统计卡片 (还原图1风格) */
+        .stat-card { border: none; border-radius: 16px; padding: 20px; color: white; position: relative; overflow: hidden; height: 120px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .stat-card h3 { font-size: 32px; font-weight: 700; margin-bottom: 0; }
         .stat-card .label { font-size: 14px; opacity: 0.9; }
-        .stat-icon { position: absolute; right: 20px; bottom: 20px; font-size: 32px; opacity: 0.3; }
-        .bg-gradient-purple { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-        .bg-gradient-pink { background: linear-gradient(135deg, #ec4899, #f43f5e); }
-        .bg-gradient-orange { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
-        .bg-gradient-cyan { background: linear-gradient(135deg, #06b6d4, #22d3ee); }
-
-        /* 表格区复原 */
-        .table-card { border: none; border-radius: 20px; box-shadow: var(--card-shadow); padding: 30px; margin-top: 30px; }
-        .table thead th { background: #f8fafc; border: none; color: #64748b; font-weight: 600; font-size: 13px; padding: 15px; }
-        .table tbody td { border-bottom: 1px solid #f1f5f9; padding: 15px; font-size: 14px; }
+        .stat-icon { position: absolute; right: 15px; bottom: 10px; font-size: 40px; opacity: 0.2; }
         
-        /* 状态标签样式 */
-        .status-badge { padding: 5px 12px; border-radius: 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
-        .status-ongoing { background: #ecfdf5; color: #10b981; }
-        .status-delayed { background: #fff1f2; color: #f43f5e; }
+        .bg-purple { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .bg-pink { background: linear-gradient(135deg, #f472b6, #db2777); }
+        .bg-orange { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+        .bg-cyan { background: linear-gradient(135deg, #06b6d4, #22d3ee); }
 
-        /* 搜索框样式复原 */
-        .search-group { background: white; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; padding: 2px 10px; }
-        .search-group select { border: none; font-size: 13px; color: #64748b; outline: none; padding-right: 10px; border-right: 1px solid #e2e8f0; }
-        .search-group input { border: none; outline: none; padding: 8px; font-size: 13px; width: 180px; }
+        /* 需求列表布局 */
+        .table-card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; background: white; margin-top: 25px; }
+        .table thead th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 13px; border: none; padding: 15px; }
+        .table tbody td { padding: 15px; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
 
-        /* 模态框复原 */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); 
-                        display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
-        .toast-msg { position: fixed; top: 30px; right: 30px; background: #1e293b; color: white; padding: 15px 25px; border-radius: 12px; z-index: 3000; display: none; }
+        /* 状态标签 */
+        .status-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+        .tag-ongoing { background: #ecfdf5; color: #10b981; }
+        .tag-warning { background: #fff7ed; color: #ea580c; }
+        .tag-delayed { background: #fff1f2; color: #f43f5e; }
+
+        /* 搜索框与按钮组布局 (左对齐新增/导出，右对齐搜索) */
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .search-box { display: flex; align-items: center; background: #f1f5f9; border-radius: 8px; padding: 5px 12px; border: 1px solid #e2e8f0; }
+        .search-box select { border: none; background: transparent; font-size: 13px; color: #64748b; outline: none; border-right: 1px solid #cbd5e1; margin-right: 8px; padding-right: 5px; }
+        .search-box input { border: none; background: transparent; outline: none; font-size: 13px; width: 180px; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
+        .toast-msg { position: fixed; top: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 3000; }
     </style>
 </head>
 <body>
     <div id="toast" class="toast-msg"></div>
 
     <nav class="navbar">
-        <div class="container d-flex justify-content-between align-items: center;">
-            <div class="d-flex align-items-center">
-                <i class="bi bi-bullseye fs-3 text-primary me-2"></i>
-                <span class="fw-bold fs-5">智能需求看板与提醒系统 - 团队协同版</span>
-            </div>
-            <div class="d-none d-md-flex">
-                <a href="#" class="nav-link">首页</a>
-                <a href="#" class="nav-link">使用帮助</a>
-            </div>
+        <div class="container d-flex justify-content-between">
+            <div class="fw-bold fs-5 text-primary"><i class="bi bi-intersect me-2"></i>智能需求看板与提醒系统</div>
+            <div class="small text-muted">2026年4月8日 | 团队协同版</div>
         </div>
     </nav>
 
     <div class="container pb-5">
-        <div class="quick-input-card card">
-            <div class="fw-bold mb-3 d-flex align-items-center">
-                <i class="bi bi-lightning-fill text-warning me-2"></i>智能快速录入
-            </div>
-            <div class="ai-hint">输入自然语言描述，系统将自动解析：</div>
-            <textarea id="aiInput" class="form-control ai-textarea" rows="3" placeholder="例如：下周五前张三需要完成财务报表系统更新，需要与财务部门协调..."></textarea>
-            <div class="ai-examples">支持多种表达方式：人名 + 时间 + 事件，如“李四12月31日前完成人力资源系统升级”</div>
+        <div class="quick-input-card">
+            <div class="ai-title"><i class="bi bi-lightning-fill text-warning"></i>智能快速录入</div>
+            <div class="ai-hint">输入自然语言描述，系统将自动解析人名、时间、系统和需求内容：</div>
+            <textarea id="aiInput" class="form-control ai-textarea" rows="3" placeholder="例如：张三在4月20日前完成OA系统升级，涉及数据库优化..."></textarea>
+            <div class="ai-examples">示例：李四12月31日前完成财务系统报表导出功能开发</div>
             <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-primary px-4 rounded-pill" style="background: #6366f1; border:none;" onclick="handleAIParse()">
-                    <i class="bi bi-robot me-2"></i>AI 解析
-                </button>
-                <button class="btn btn-light px-4 rounded-pill border" onclick="document.getElementById('aiInput').value=''">
-                    <i class="bi bi-x-lg me-2"></i>清空
-                </button>
-                <button class="btn btn-outline-primary px-4 rounded-pill" onclick="showAiExample()">
-                    <i class="bi bi-question-circle me-2"></i>使用示例
-                </button>
+                <button class="btn btn-primary rounded-pill px-4" onclick="handleAIParse()"><i class="bi bi-robot me-2"></i>AI 解析</button>
+                <button class="btn btn-light border rounded-pill px-4" onclick="document.getElementById('aiInput').value=''">清空内容</button>
+                <button class="btn btn-outline-secondary rounded-pill px-4" onclick="fillExample()">使用示例</button>
             </div>
         </div>
 
-        <div class="row g-4 mt-2">
-            <div class="col-md-3">
-                <div class="stat-card bg-gradient-purple">
-                    <h3 id="statToday">0</h3>
-                    <div class="label">今日到期</div>
-                    <i class="bi bi-clock stat-icon"></i>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card bg-gradient-pink">
-                    <h3 id="statProcess">0</h3>
-                    <div class="label">进行中</div>
-                    <i class="bi bi-arrow-repeat stat-icon"></i>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card bg-gradient-orange">
-                    <h3 id="statOverdue">0</h3>
-                    <div class="label">已延期</div>
-                    <i class="bi bi-exclamation-triangle stat-icon"></i>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card bg-gradient-cyan">
-                    <h3 id="statTotal">0</h3>
-                    <div class="label">本周待办</div>
-                    <i class="bi bi-list-check stat-icon"></i>
-                </div>
-            </div>
+        <div class="row g-4 mt-1">
+            <div class="col-md-3"><div class="stat-card bg-purple"><h3 id="statToday">0</h3><div class="label">今日到期</div><i class="bi bi-alarm stat-icon"></i></div></div>
+            <div class="col-md-3"><div class="stat-card bg-pink"><h3 id="statOngoing">0</h3><div class="label">进行中</div><i class="bi bi-play-circle stat-icon"></i></div></div>
+            <div class="col-md-3"><div class="stat-card bg-orange"><h3 id="statOverdue">0</h3><div class="label">已延期</div><i class="bi bi-exclamation-octagon stat-icon"></i></div></div>
+            <div class="col-md-3"><div class="stat-card bg-cyan"><h3 id="statTotal">0</h3><div class="label">本周待办</div><i class="bi bi-calendar-check stat-icon"></i></div></div>
         </div>
 
-        <div class="table-card card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="fw-bold fs-6"><i class="bi bi-table me-2"></i>需求列表</div>
-                <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary btn-sm px-3" onclick="openAddModal()">
-                            <i class="bi bi-plus-lg me-1"></i>新增需求
-                        </button>
-                        <button class="btn btn-outline-primary btn-sm px-3" onclick="exportData()">
-                            <i class="bi bi-download me-1"></i>导出需求
-                        </button>
-                    </div>
-                    <div class="search-group">
-                        <select id="searchType">
-                            <option value="all">全部字段</option>
-                            <option value="system">所属系统</option>
-                            <option value="owner">处理人</option>
-                        </select>
-                        <input type="text" id="searchInput" placeholder="搜索关键词..." onkeyup="handleSearch()">
-                        <i class="bi bi-search text-muted"></i>
-                    </div>
-                    <button class="btn btn-light btn-sm rounded-circle" onclick="loadData()"><i class="bi bi-arrow-clockwise"></i></button>
+        <div class="table-card">
+            <div class="action-bar">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm px-3" onclick="openAddModal()"><i class="bi bi-plus-lg me-1"></i>新增需求</button>
+                    <button class="btn btn-outline-primary btn-sm px-3" onclick="exportCSV()"><i class="bi bi-download me-1"></i>导出需求</button>
+                </div>
+                <div class="search-box">
+                    <select id="searchType"><option value="all">全字段</option><option value="system">系统</option><option value="owner">处理人</option></select>
+                    <input type="text" id="searchInput" placeholder="搜索关键词..." onkeyup="doSearch()">
+                    <i class="bi bi-search text-muted ms-2"></i>
                 </div>
             </div>
+
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>序号</th>
-                            <th>所属系统</th>
-                            <th>需求描述</th>
-                            <th>处理人</th>
-                            <th>状态</th>
-                            <th>提出时间</th> <th>计划完成</th>
-                            <th>操作</th>
+                            <th>序号</th><th>所属系统</th><th>需求描述</th><th>处理人邮箱</th><th>状态</th><th>提出时间</th><th>计划完成时间</th><th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="reqTable"></tbody>
@@ -164,43 +110,22 @@
     </div>
 
     <div id="editModal" class="modal-overlay">
-        <div class="card p-4" style="width: 90%; max-width: 500px; border-radius: 20px;">
-            <h5 id="modalTitle" class="mb-4 fw-bold">新增需求</h5>
+        <div class="card p-4 shadow" style="width: 90%; max-width: 500px; border-radius: 20px; border:none;">
+            <h5 id="modalTitle" class="fw-bold mb-4">编辑需求</h5>
             <input type="hidden" id="fieldId">
-            <div class="mb-3">
-                <label class="form-label small fw-bold">所属系统</label>
-                <input type="text" id="fieldSystem" class="form-control rounded-3" placeholder="例如：客户关系系统">
-            </div>
-            <div class="mb-3">
-                <label class="form-label small fw-bold">需求描述</label>
-                <textarea id="fieldDesc" class="form-control rounded-3" rows="3" placeholder="请描述具体需求内容..."></textarea>
-            </div>
-            <div class="mb-3 row">
-                <div class="col-6">
-                    <label class="form-label small fw-bold">处理人</label>
-                    <input type="text" id="fieldOwner" class="form-control rounded-3" placeholder="姓名">
-                </div>
-                <div class="col-6">
-                    <label class="form-label small fw-bold">状态</label>
-                    <select id="fieldStatus" class="form-select rounded-3">
-                        <option value="进行中">进行中</option>
-                        <option value="已完成">已完成</option>
-                    </select>
-                </div>
-            </div>
-            <div class="mb-4">
-                <label class="form-label small fw-bold">计划完成时间</label>
-                <input type="datetime-local" id="fieldTime" class="form-control rounded-3">
-            </div>
+            <div class="mb-3"><label class="small fw-bold">所属系统</label><input type="text" id="fSystem" class="form-control"></div>
+            <div class="mb-3"><label class="small fw-bold">需求描述</label><textarea id="fDesc" class="form-control" rows="3"></textarea></div>
+            <div class="mb-3"><label class="small fw-bold">处理人邮箱</label><input type="email" id="fOwner" class="form-control" placeholder="name@company.com"></div>
+            <div class="mb-4"><label class="small fw-bold">计划完成时间</label><input type="datetime-local" id="fTime" class="form-control"></div>
             <div class="d-flex gap-2 justify-content-end">
                 <button class="btn btn-light px-4" onclick="closeModal()">取消</button>
-                <button class="btn btn-primary px-4" style="background: #6366f1;" onclick="saveData()">确认保存</button>
+                <button class="btn btn-primary px-4" onclick="handleSave()">确认保存</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Supabase 初始化 (使用 client 避免冲突)
+        // 初始化
         const SB_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
         const SB_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
         const client = supabase.createClient(SB_URL, SB_KEY);
@@ -209,160 +134,118 @@
 
         window.onload = loadData;
 
-        // 加载数据
         async function loadData() {
             const { data, error } = await client.from('requirements').select('*').order('created_at', { ascending: false });
             if (!error) {
                 dataStore = data;
-                renderTable(data);
+                render(data);
                 updateStats();
             }
         }
 
-        // 渲染表格
-        function renderTable(data) {
+        function render(data) {
             const html = data.map((item, index) => {
-                const isOverdue = new Date(item.plan_time) < new Date() && item.status !== '已完成';
-                return `
-                <tr>
+                const now = new Date();
+                const planDate = new Date(item.plan_time);
+                const diffDays = Math.ceil((planDate - now) / (1000 * 60 * 60 * 24));
+                
+                let tagClass = 'tag-ongoing';
+                let tagText = '● 进行中';
+                if(diffDays < 0) { tagClass = 'tag-delayed'; tagText = '● 已延期'; }
+                else if(diffDays <= 7) { tagClass = 'tag-warning'; tagText = `● 剩${diffDays}天`; }
+
+                return `<tr>
                     <td class="text-muted small">${index + 1}</td>
                     <td><span class="badge bg-light text-primary border px-2 py-1">${item.system}</span></td>
-                    <td style="max-width:300px" class="text-truncate">${item.description}</td>
-                    <td><i class="bi bi-person-circle me-1 text-muted"></i>${item.owner}</td>
+                    <td style="max-width:260px" class="text-truncate" title="${item.description}">${item.description}</td>
+                    <td class="small"><i class="bi bi-envelope-at me-1"></i>${item.owner}</td>
+                    <td><span class="status-tag ${tagClass}">${tagText}</span></td>
+                    <td class="text-muted small">${new Date(item.created_at).toLocaleDateString()}</td>
+                    <td class="fw-bold small ${diffDays <= 7 && diffDays >= 0 ? 'text-warning' : ''}">${new Date(item.plan_time).toLocaleString()}</td>
                     <td>
-                        <span class="status-badge ${isOverdue ? 'status-delayed' : 'status-ongoing'}">
-                            ${isOverdue ? '● 已延期' : '● 进行中'}
-                        </span>
-                    </td>
-                    <td class="small text-muted">${formatTime(item.created_at)}</td> <td class="small fw-bold">${formatTime(item.plan_time)}</td>
-                    <td>
-                        <button class="btn btn-sm text-primary p-0 me-2" onclick="openEditModal(${item.id})">编辑</button>
-                        <button class="btn btn-sm text-danger p-0" onclick="handleDelete(${item.id})">删除</button>
+                        <button class="btn btn-sm text-primary p-0 me-2" onclick="openEdit(${item.id})">编辑</button>
+                        <button class="btn btn-sm text-danger p-0" onclick="handleDel(${item.id})">删除</button>
                     </td>
                 </tr>`;
             }).join('');
-            document.getElementById('reqTable').innerHTML = html || '<tr><td colspan="8" class="text-center py-5 text-muted">暂无需求数据</td></tr>';
+            document.getElementById('reqTable').innerHTML = html || '<tr><td colspan="8" class="text-center py-5 text-muted">暂无记录</td></tr>';
         }
 
-        // AI 解析逻辑复原
+        async function handleSave() {
+            const id = document.getElementById('fieldId').value;
+            const payload = {
+                system: document.getElementById('fSystem').value,
+                description: document.getElementById('fDesc').value,
+                owner: document.getElementById('fOwner').value,
+                plan_time: document.getElementById('fTime').value,
+                status: '进行中'
+            };
+            const req = id ? client.from('requirements').update(payload).eq('id', id) : client.from('requirements').insert([payload]);
+            const { error } = await req;
+            if(!error) { showToast("保存成功"); closeModal(); loadData(); }
+        }
+
         function handleAIParse() {
             const text = document.getElementById('aiInput').value;
-            if(!text) return showToast("请先输入内容");
-            
-            const owners = ["张三", "李四", "王五", "赵六", "陈七"];
-            let foundOwner = owners.find(o => text.includes(o)) || "待分配";
-            let foundSystem = text.includes("OA") ? "OA系统" : (text.includes("财务") ? "财务系统" : "新系统");
-
+            if(!text) return;
             openAddModal();
-            document.getElementById('fieldDesc').value = text;
-            document.getElementById('fieldOwner').value = foundOwner;
-            document.getElementById('fieldSystem').value = foundSystem;
+            document.getElementById('fDesc').value = text;
+            document.getElementById('fSystem').value = text.includes("OA") ? "OA系统" : "核心业务系统";
+            document.getElementById('fOwner').value = "test@company.com";
             showToast("AI 解析完成，请补充时间");
         }
 
-        // 导出需求为 CSV
-        function exportData() {
-            if (dataStore.length === 0) return showToast("没有可导出的数据");
-            const headers = "序号,所属系统,需求描述,处理人,状态,提出时间,计划完成\n";
-            const rows = dataStore.map((item, idx) => 
-                `${idx+1},${item.system},${item.description.replace(/,/g,'，')},${item.owner},${item.status},${item.created_at},${item.plan_time}`
-            ).join("\n");
-            const blob = new Blob(["\ufeff" + headers + rows], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `需求清单_${new Date().toLocaleDateString()}.csv`;
-            link.click();
+        function exportCSV() {
+            const headers = "\ufeff序号,系统,描述,负责人,计划时间\n";
+            const rows = dataStore.map((i, idx) => `${idx+1},${i.system},${i.description},${i.owner},${i.plan_time}`).join("\n");
+            const blob = new Blob([headers + rows], { type: 'text/csv' });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "需求清单.csv";
+            a.click();
         }
 
-        // 查询搜索逻辑
-        function handleSearch() {
+        function doSearch() {
             const kw = document.getElementById('searchInput').value.toLowerCase();
-            const type = document.getElementById('searchType').value;
-            const filtered = dataStore.filter(item => {
-                if (type === 'system') return item.system.toLowerCase().includes(kw);
-                if (type === 'owner') return item.owner.toLowerCase().includes(kw);
-                return item.system.toLowerCase().includes(kw) || item.description.toLowerCase().includes(kw) || item.owner.toLowerCase().includes(kw);
-            });
-            renderTable(filtered);
+            const res = dataStore.filter(i => i.system.toLowerCase().includes(kw) || i.description.toLowerCase().includes(kw) || i.owner.toLowerCase().includes(kw));
+            render(res);
         }
 
-        // 数据保存逻辑 (对接你的数据库 plan_time)
-        async function saveData() {
-            const id = document.getElementById('fieldId').value;
-            const payload = {
-                system: document.getElementById('fieldSystem').value,
-                description: document.getElementById('fieldDesc').value,
-                owner: document.getElementById('fieldOwner').value,
-                plan_time: document.getElementById('fieldTime').value,
-                status: document.getElementById('fieldStatus').value
-            };
-
-            if(!payload.system || !payload.plan_time) return showToast("请填写系统名称和计划时间");
-
-            const action = id ? client.from('requirements').update(payload).eq('id', id) : client.from('requirements').insert([payload]);
-            const { error } = await action;
-            
-            if (!error) {
-                showToast("保存成功！");
-                closeModal();
-                loadData();
-            } else {
-                showToast("错误: " + error.message);
-            }
-        }
-
-        // 辅助函数
-        function formatTime(str) {
-            if(!str) return '-';
-            const d = new Date(str);
-            return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-        }
-
-        function showAiExample() {
-            document.getElementById('aiInput').value = "下周一前李四需要完成客户关系系统的搜索功能优化，需要配合后端接口调整。";
-            showToast("已填入示例数据");
+        function fillExample() {
+            document.getElementById('aiInput').value = "下周三前张三需要完成财务系统的自动对账功能开发，并发送邮件提醒。";
         }
 
         function openAddModal() {
             document.getElementById('fieldId').value = '';
             document.getElementById('modalTitle').innerText = "新增需求";
-            document.getElementById('fieldSystem').value = '';
-            document.getElementById('fieldDesc').value = '';
-            document.getElementById('fieldOwner').value = '';
-            document.getElementById('fieldTime').value = '';
+            document.getElementById('fSystem').value = ''; document.getElementById('fDesc').value = '';
+            document.getElementById('fOwner').value = ''; document.getElementById('fTime').value = '';
             document.getElementById('editModal').style.display = 'flex';
         }
 
-        function openEditModal(id) {
-            const item = dataStore.find(d => d.id === id);
+        function openEdit(id) {
+            const item = dataStore.find(i => i.id === id);
             document.getElementById('fieldId').value = item.id;
             document.getElementById('modalTitle').innerText = "编辑需求";
-            document.getElementById('fieldSystem').value = item.system;
-            document.getElementById('fieldDesc').value = item.description;
-            document.getElementById('fieldOwner').value = item.owner;
-            if(item.plan_time) document.getElementById('fieldTime').value = new Date(item.plan_time).toISOString().slice(0,16);
+            document.getElementById('fSystem').value = item.system;
+            document.getElementById('fDesc').value = item.description;
+            document.getElementById('fOwner').value = item.owner;
+            if(item.plan_time) document.getElementById('fTime').value = new Date(item.plan_time).toISOString().slice(0,16);
             document.getElementById('editModal').style.display = 'flex';
         }
 
         function closeModal() { document.getElementById('editModal').style.display = 'none'; }
 
-        async function handleDelete(id) {
-            if(confirm("确定删除此需求？")) {
-                await client.from('requirements').delete().eq('id', id);
-                loadData();
-            }
+        async function handleDel(id) {
+            if(confirm("确定删除？")) { await client.from('requirements').delete().eq('id', id); loadData(); }
         }
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
-        }
+        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2000); }
 
         function updateStats() {
             document.getElementById('statTotal').innerText = dataStore.length;
-            document.getElementById('statProcess').innerText = dataStore.filter(i => i.status !== '已完成').length;
-            document.getElementById('statOverdue').innerText = dataStore.filter(i => new Date(i.plan_time) < new Date() && i.status !== '已完成').length;
+            document.getElementById('statOngoing').innerText = dataStore.filter(i => new Date(i.plan_time) >= new Date()).length;
+            document.getElementById('statOverdue').innerText = dataStore.filter(i => new Date(i.plan_time) < new Date()).length;
             document.getElementById('statToday').innerText = dataStore.filter(i => new Date(i.plan_time).toDateString() === new Date().toDateString()).length;
         }
     </script>
