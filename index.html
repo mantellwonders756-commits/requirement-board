@@ -814,15 +814,13 @@
     <script>
         // 全局变量
         let requirementsData = [];
-        let supabase = null;
-
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 // Supabase 配置 - 只初始化一次
                 const supabaseUrl = 'https://gcetwdskijgnegzvsxta.supabase.co';
                 const supabaseAnonKey = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
-                supabase = createClient(supabaseUrl, supabaseAnonKey);
+                window.supabase = supabasejs.createClient(supabaseUrl, supabaseAnonKey);
                 console.log('Supabase 初始化成功');
             } catch (error) {
                 console.error('Supabase 初始化失败:', error);
