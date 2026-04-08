@@ -3,1557 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能需求看板与提醒系统 - 团队协同版</title>
+    <title>智能需求管理系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --primary-color: #4A5568;
-            --light-bg: #F9FAFB;
-            --card-bg: #FFFFFF;
-            --border-color: #E2E8F0;
-            --text-muted: #718096;
-            --system-tag-bg: #F0F0F0;
-            --system-tag-color: #4A5568;
-            --status-overdue-bg: #FFEBEE;
-            --status-overdue-color: #C62828;
-            --status-in-progress-bg: #FCE4EC;
-            --status-in-progress-color: #AD1457;
-            --status-pending-bg: #E3F2FD;
-            --status-pending-color: #1565C0;
-            --status-scheduled-bg: #FFF3E0;
-            --status-scheduled-color: #E65100;
-        }
-
-        body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--light-bg);
-            color: var(--primary-color);
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* 导航栏样式 */
-        .navbar {
-            background: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
-            padding: 0.75rem 0;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-        }
-
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: var(--primary-color);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-        }
-
-        .nav-link {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-
-        .nav-link:hover {
-            color: #3B82F6;
-        }
-
-        /* 智能快速录入区 */
-        .quick-input-section {
-            background: var(--card-bg);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-        }
-
-        .section-title {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .section-subtitle {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-        }
-
-        .input-area {
-            margin-bottom: 1.5rem;
-        }
-
-        .input-textarea {
-            width: 100%;
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            resize: vertical;
-            min-height: 120px;
-        }
-
-        .input-textarea:focus {
-            border-color: #3B82F6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            outline: none;
-        }
-
-        .placeholder-text {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 0.5rem;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: var(--card-bg);
-            color: var(--primary-color);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: #F7FAFC;
-        }
-
-        .btn-outline {
-            background: var(--card-bg);
-            color: #3B82F6;
-            border: 1px solid #3B82F6;
-        }
-
-        .btn-outline:hover {
-            background: #EBF8FF;
-        }
-
-        /* 统计卡片区 */
-        .stats-section {
-            margin-bottom: 2rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .stat-card:nth-child(2) {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .stat-card:nth-child(3) {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        }
-
-        .stat-card:nth-child(4) {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-content {
-            flex: 1;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            opacity: 0.9;
-        }
-
-        .stat-icon {
-            font-size: 1.5rem;
-        }
-
-        /* 需求列表区 */
-        .requirements-section {
-            background: var(--card-bg);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .refresh-btn {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .refresh-btn:hover {
-            background: #F7FAFC;
-        }
-
-        .search-container {
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            justify-content: space-between;
-        }
-
-        .action-buttons-row {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .btn-add {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-export {
-            background: var(--card-bg);
-            color: #3B82F6;
-            border: 1px solid #3B82F6;
-        }
-
-        .search-box {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-shrink: 0;
-        }
-
-        .search-select {
-            padding: 0.5rem;
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            font-size: 0.85rem;
-            background: var(--card-bg);
-            min-width: 120px;
-        }
-
-        .search-input-container {
-            position: relative;
-            width: 250px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 0.5rem 2.5rem 0.5rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            font-size: 0.85rem;
-            transition: all 0.2s ease;
-        }
-
-        .search-input:focus {
-            border-color: #3B82F6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            outline: none;
-        }
-
-        .search-icon {
-            position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
-
-        .requirements-table-container {
-            overflow-x: auto;
-        }
-
-        .requirements-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.875rem;
-        }
-
-        .requirements-table th {
-            background: #F7FAFC;
-            padding: 0.75rem;
-            text-align: left;
-            font-weight: 600;
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .requirements-table td {
-            padding: 1rem 0.75rem;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: top;
-        }
-
-        .requirements-table tbody tr:hover {
-            background: #F7FAFC;
-        }
-
-        .system-tag {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--system-tag-color);
-            background: var(--system-tag-bg);
-            text-align: center;
-            white-space: nowrap;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            white-space: nowrap;
-        }
-
-        .status-overdue {
-            background: var(--status-overdue-bg);
-            color: var(--status-overdue-color);
-        }
-
-        .status-in-progress {
-            background: var(--status-in-progress-bg);
-            color: var(--status-in-progress-color);
-        }
-
-        .status-pending {
-            background: var(--status-pending-bg);
-            color: var(--status-pending-color);
-        }
-
-        .status-scheduled {
-            background: var(--status-scheduled-bg);
-            color: var(--status-scheduled-color);
-        }
-
-        .time-tag {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-        }
-
-        .action-buttons-small {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-small {
-            padding: 0.25rem 0.5rem;
-            border: none;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            background: transparent;
-        }
-
-        .btn-edit {
-            color: #3B82F6;
-        }
-
-        .btn-edit:hover {
-            background: rgba(59, 130, 246, 0.1);
-        }
-
-        .btn-delete {
-            color: #EF4444;
-        }
-
-        .btn-delete:hover {
-            background: rgba(239, 68, 68, 0.1);
-        }
-
-        /* 模态框样式 */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-container {
-            background-color: white;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .modal-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #6c757d;
-        }
-
-        .modal-close:hover {
-            color: #343a40;
-        }
-
-        .modal-body {
-            padding: 16px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-
-        .form-control:focus {
-            border-color: #80bdff;
-            outline: 0;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
-
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            padding: 16px;
-            border-top: 1px solid #e9ecef;
-            gap: 8px;
-        }
-
-        /* Toast提示样式 */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #1A202C;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        /* 加载状态 */
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-            color: var(--text-muted);
-        }
-
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50%;
-            border-top: 4px solid #3B82F6;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin-right: 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .search-container {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .action-buttons-row {
-                justify-content: center;
-            }
-            
-            .search-box {
-                justify-content: center;
-            }
-            
-            .requirements-table-container {
-                overflow-x: auto;
-            }
-            
-            .requirements-table {
-                min-width: 800px;
-            }
-        }
+        :root { --primary: #6366f1; --bg: #f8fafc; }
+        body { background: var(--bg); font-family: system-ui; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .stat-card { color: white; padding: 20px; border-radius: 12px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1050; }
+        .toast-custom { position: fixed; top: 20px; right: 20px; z-index: 9999; background: #333; color: white; padding: 12px 24px; border-radius: 8px; display: none; }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <div class="row align-items-center justify-content-between">
-                <div class="col-md-6">
-                    <div class="navbar-brand">
-                        <i class="bi bi-bullseye"></i>
-                        智能需求看板与提醒系统 - 团队协同版
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="nav-links justify-content-end">
-                        <a href="#" class="nav-link">首页</a>
-                        <a href="#" class="nav-link">使用帮助</a>
-                    </div>
-                </div>
+    <div id="toast" class="toast-custom"></div>
+
+    <div class="container py-4">
+        <h2 class="mb-4 fw-bold"><i class="bi bi-rocket-takeoff text-primary"></i> 需求管理看板</h2>
+
+        <div class="card p-4 mb-4">
+            <h5 class="mb-3"><i class="bi bi-robot"></i> 智能快录</h5>
+            <textarea id="aiInput" class="form-control mb-3" rows="3" placeholder="输入：张三在4月10日前完成OA系统升级..."></textarea>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="handleAIParse()"><i class="bi bi-magic"></i> AI 智能解析</button>
+                <button class="btn btn-outline-secondary" onclick="addRequirement()">手动新增</button>
             </div>
         </div>
-    </nav>
 
-    <div class="container">
-        <!-- 智能快速录入区 -->
-        <section class="quick-input-section">
-            <div class="section-title">
-                <i class="bi bi-lightning-fill"></i>
-                智能快速录入
-            </div>
-            <div class="section-subtitle">
-                输入自然语言描述，系统将自动解析：
-            </div>
-            <div class="input-area">
-                <textarea class="input-textarea" id="requirementText" placeholder="例如：下周五前张三需要完成财务报表系统更新，需要与财务部门协调..."></textarea>
-                <div class="placeholder-text">
-                    支持多种表达方式：人名 + 时间 + 事件，如"李四12月31日前完成人力资源系统升级"
-                </div>
-            </div>
-            <div class="action-buttons">
-                <button class="btn btn-primary" onclick="parseText()">
-                    <i class="bi bi-robot"></i>
-                    AI解析
-                </button>
-                <button class="btn btn-secondary" onclick="clearText()">
-                    <i class="bi bi-x"></i>
-                    清空
-                </button>
-                <button class="btn btn-outline" onclick="showExample()">
-                    <i class="bi bi-question-circle"></i>
-                    使用示例
-                </button>
-            </div>
-        </section>
-
-        <!-- 统计卡片区 -->
-        <section class="stats-section">
-            <div class="stats-grid">
-                <div class="stat-card" onclick="filterByStatus('today')">
-                    <div class="stat-content">
-                        <div class="stat-number" id="todayCount">0</div>
-                        <div class="stat-label">今日到期</div>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-clock"></i>
-                    </div>
-                </div>
-                <div class="stat-card" onclick="filterByStatus('in-progress')">
-                    <div class="stat-content">
-                        <div class="stat-number" id="inProgressCount">0</div>
-                        <div class="stat-label">进行中</div>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-arrow-repeat"></i>
-                    </div>
-                </div>
-                <div class="stat-card" onclick="filterByStatus('overdue')">
-                    <div class="stat-content">
-                        <div class="stat-number" id="overdueCount">0</div>
-                        <div class="stat-label">已延期</div>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-exclamation-triangle"></i>
-                    </div>
-                </div>
-                <div class="stat-card" onclick="filterByStatus('weekly')">
-                    <div class="stat-content">
-                        <div class="stat-number" id="weeklyCount">0</div>
-                        <div class="stat-label">本周待办</div>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-list-task"></i>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 需求列表区 -->
-        <section class="requirements-section">
-            <div class="section-header">
-                <div class="section-title">
-                    <i class="bi bi-table"></i>
-                    需求列表
-                </div>
-                <button class="refresh-btn" onclick="fetchRequirements()">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    刷新
-                </button>
-            </div>
-            
-            <div class="search-container">
-                <div class="action-buttons-row">
-                    <button class="btn btn-add" onclick="addRequirement()">
-                        <i class="bi bi-plus"></i>
-                        新增需求
-                    </button>
-                    <button class="btn btn-export" onclick="exportRequirements()">
-                        <i class="bi bi-download"></i>
-                        导出需求
-                    </button>
-                </div>
-                <div class="search-box">
-                    <select class="search-select" id="searchField">
-                        <option value="all">全部字段</option>
-                        <option value="system">所属系统</option>
-                        <option value="description">需求描述</option>
-                        <option value="owner">处理人</option>
-                        <option value="status">状态</option>
-                        <option value="createdAt">提出时间</option>
-                        <option value="deadline">计划完成</option>
-                    </select>
-                    <div class="search-input-container">
-                        <input type="text" class="search-input" placeholder="搜索关键词..." id="searchInput" onkeyup="searchRequirements()">
-                        <i class="bi bi-search search-icon"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="requirements-table-container">
-                <div id="loading" class="loading" style="display: none;">
-                    <div class="spinner"></div>
-                    <span>加载中...</span>
-                </div>
-                <table class="requirements-table">
+        <div class="card p-4">
+            <div class="table-responsive">
+                <table class="table align-middle">
                     <thead>
                         <tr>
-                            <th>序号</th>
-                            <th>所属系统</th>
-                            <th>需求描述</th>
-                            <th>处理人</th>
-                            <th>状态</th>
-                            <th>提出时间</th>
-                            <th>计划完成</th>
-                            <th>操作</th>
+                            <th>所属系统</th><th>描述</th><th>负责人</th><th>状态</th><th>计划时间</th><th>操作</th>
                         </tr>
                     </thead>
-                    <tbody id="requirementsTableBody">
-                        <!-- 表格内容将通过JavaScript动态生成 -->
-                    </tbody>
+                    <tbody id="tableBody"></tbody>
                 </table>
             </div>
-        </section>
+        </div>
     </div>
 
-    <!-- 统一需求模态框 -->
-    <div id="demandModal" class="modal-overlay" style="display: none;" onclick="closeModal()">
-        <div class="modal-container" onclick="event.stopPropagation();">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">新增需求</h5>
-                <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+    <div id="demandModal" class="modal-overlay">
+        <div class="card p-4" style="width: 100%; max-width: 500px;">
+            <h4 id="modalTitle" class="mb-3">新增需求</h4>
+            <input type="hidden" id="editId">
+            <div class="mb-3">
+                <label class="form-label">所属系统</label>
+                <input type="text" id="mSystem" class="form-control" placeholder="如：财务系统">
             </div>
-            <div class="modal-body">
-                <form id="demandForm">
-                    <input type="hidden" id="requirementId">
-                    <div class="form-group">
-                        <label for="modalSystem">所属系统</label>
-                        <input type="text" class="form-control" id="modalSystem" placeholder="请输入所属系统名称（如：人力资源系统）" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="modalDescription">需求描述</label>
-                        <textarea class="form-control" id="modalDescription" rows="3" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="modalOwner">处理人</label>
-                        <input type="text" class="form-control" id="modalOwner" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="modalCreatedAt">需求提出时间</label>
-                        <input type="datetime-local" class="form-control" id="modalCreatedAt" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="modalDeadline">计划完成时间</label>
-                        <input type="datetime-local" class="form-control" id="modalDeadline" required>
-                    </div>
-                </form>
+            <div class="mb-3">
+                <label class="form-label">需求描述</label>
+                <textarea id="mDesc" class="form-control" rows="2"></textarea>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveRequirement()">保存</button>
+            <div class="mb-3">
+                <label class="form-label">负责人</label>
+                <input type="text" id="mOwner" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">计划完成时间</label>
+                <input type="datetime-local" id="mDate" class="form-control">
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button class="btn btn-light" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="submitData()">确认保存</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 全局变量
-        let requirementsData = [];
-        // 页面加载时初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                // Supabase 配置 - 只初始化一次
-                const supabaseUrl = 'https://gcetwdskijgnegzvsxta.supabase.co';
-                const supabaseAnonKey = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
-                window.supabase = supabasejs.createClient(supabaseUrl, supabaseAnonKey);
-                console.log('Supabase 初始化成功');
-            } catch (error) {
-                console.error('Supabase 初始化失败:', error);
-                showToast('Supabase 初始化失败，将使用本地示例数据');
-            }
-            
-            // 加载数据
-            fetchRequirements();
-        });
+        // 配置初始化 (只声明一次，防止重复定义报错)
+        const S_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
+        const S_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
+        const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
-        // 从云端获取需求数据
-        async function fetchRequirements() {
-            const loading = document.getElementById('loading');
-            loading.style.display = 'flex';
+        let allData = [];
+
+        // 页面加载
+        window.onload = () => {
+            loadData();
+        };
+
+        async function loadData() {
+            const { data, error } = await supabaseClient
+                .from('requirements')
+                .select('*')
+                .order('created_at', { ascending: false });
             
-            try {
-                if (!supabase) {
-                    console.warn('Supabase 未初始化，使用本地示例数据');
-                    useSampleData();
-                    return;
-                }
-                
-                const { data, error } = await supabase
-                    .from('requirements')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                console.log('从云端获取到的数据:', data);
-                
-                if (error) {
-                    console.error('加载需求数据失败:', error);
-                    showToast('加载数据失败，请重试');
-                    // 显示初始示例数据
-                    useSampleData();
-                } else if (!data || data.length === 0) {
-                    // 如果数据库为空，使用初始示例数据
-                    console.log('数据库为空，使用示例数据');
-                    useSampleData();
-                } else {
-                    requirementsData = data;
-                    renderTable();
-                    calculateStats();
-                }
-            } catch (error) {
-                console.error('加载需求数据异常:', error);
-                showToast('加载数据异常，请重试');
-                // 显示初始示例数据
-                useSampleData();
-            } finally {
-                loading.style.display = 'none';
+            if (!error) {
+                allData = data;
+                render();
             }
         }
 
-        // 使用示例数据
-        function useSampleData() {
-            // 初始示例数据
-            requirementsData = [
-                {
-                    id: 3,
-                    system: '客户关系系统',
-                    description: '修复客户数据导入功能\n技术难点需要攻关',
-                    owner: '王五',
-                    status: '已延期',
-                    created_at: '2026-03-20T03:01:00',
-                    plan_time: '2026-03-19T11:01:00'
-                },
-                {
-                    id: 1,
-                    system: '财务系统',
-                    description: '完成2024年第四季度财务报表编制\n需要与审计部门协调',
-                    owner: '张三',
-                    status: '进行中',
-                    created_at: '2026-03-20T03:01:00',
-                    plan_time: '2026-03-24T11:01:00'
-                },
-                {
-                    id: 2,
-                    system: '人力资源系统',
-                    description: '更新员工绩效考核模块\n等待需求确认',
-                    owner: '李四',
-                    status: '待处理',
-                    created_at: '2026-03-20T03:01:00',
-                    plan_time: '2026-03-28T11:01:00'
-                },
-                {
-                    id: 4,
-                    system: '资产管理系统',
-                    description: '另外这个文案也调整一下：您有x个即将到期或已到期的x。表格里最后一列，看看能不能直接把续期链接加进去。如果所有人都是同一个模板，模板里的每个人不一样，那就把续期链接放进去，一点就能够和在资产管理系统上点续期是一样的效果。',
-                    owner: '待分配',
-                    status: '待排期',
-                    created_at: '2026-03-20T03:08:00',
-                    plan_time: '2026-03-28T11:07:00'
-                }
-            ];
-            renderTable();
-            calculateStats();
-        }
-
-        // 渲染表格
-        function renderTable() {
-            const tableBody = document.getElementById('requirementsTableBody');
-            tableBody.innerHTML = '';
-
-            requirementsData.forEach((item, index) => {
-                const row = document.createElement('tr');
-                
-                // 设置行背景色
-                if (item.status === '已延期') {
-                    row.style.backgroundColor = '#FEF2F2';
-                }
-
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td><span class="system-tag">${item.system}</span></td>
-                    <td>${item.description.replace(/\n/g, '<br>')}</td>
-                    <td>${item.owner}</td>
+        function render() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = allData.map(item => `
+                <tr>
+                    <td><span class="badge bg-light text-dark border">${item.system || '-'}</span></td>
+                    <td>${item.description || '-'}</td>
+                    <td><i class="bi bi-person"></i> ${item.owner || '-'}</td>
+                    <td><span class="badge bg-info">${item.status || '进行中'}</span></td>
+                    <td class="small text-muted">${item.plan_time ? new Date(item.plan_time).toLocaleString() : '-'}</td>
                     <td>
-                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <span class="status-badge status-${getStatusClass(item.status)}">
-                                <i class="bi ${getStatusIcon(item.status)}"></i>
-                                ${item.status}
-                            </span>
-                            <small class="time-tag">${calculateDays(item.plan_time)}</small>
-                        </div>
+                        <button class="btn btn-sm btn-link text-primary" onclick="editItem(${item.id})">编辑</button>
+                        <button class="btn btn-sm btn-link text-danger" onclick="deleteItem(${item.id})">删除</button>
                     </td>
-                    <td>${formatDateTime(item.created_at)}</td>
-                    <td>${formatDateTime(item.plan_time)}</td>
-                    <td>
-                        <div class="action-buttons-small">
-                            <button class="btn-small btn-edit" onclick="editRequirement(${item.id}, event)">
-                                <i class="bi bi-pencil"></i>
-                                编辑
-                            </button>
-                            <button class="btn-small btn-delete" onclick="deleteRequirement(${item.id}, event)">
-                                <i class="bi bi-trash"></i>
-                                删除
-                            </button>
-                        </div>
-                    </td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
+                </tr>
+            `).join('');
         }
 
-        // 格式化日期时间
-        function formatDateTime(dateTimeString) {
-            if (!dateTimeString) return '';
-            const date = new Date(dateTimeString);
-            return date.toLocaleString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
+        // AI 解析逻辑
+        function handleAIParse() {
+            const text = document.getElementById('aiInput').value;
+            if(!text) return showToast("请输入内容");
 
-        // 计算剩余天数
-        function calculateDays(planTimeString) {
-            if (!planTimeString) return '';
-            const planDate = new Date(planTimeString);
-            const now = new Date();
-            const diffTime = planDate - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            // 极简正则解析
+            const ownerMatch = text.match(/(张三|李四|王五|赵六|陈七)/);
+            const dateMatch = text.match(/(\d{1,2}月\d{1,2}日)/);
             
-            if (diffDays < 0) {
-                return `已延期${Math.abs(diffDays)}天`;
-            } else if (diffDays === 0) {
-                return '今天到期';
-            } else {
-                return `剩余${diffDays}天`;
-            }
+            addRequirement(); // 打开弹窗
+            document.getElementById('mDesc').value = text;
+            if(ownerMatch) document.getElementById('mOwner').value = ownerMatch[0];
+            document.getElementById('mSystem').value = "待定系统";
+            showToast("AI 解析完成，请完善细节");
         }
 
-        // 获取状态样式类
-        function getStatusClass(status) {
-            switch (status) {
-                case '已延期': return 'overdue';
-                case '进行中': return 'in-progress';
-                case '待处理': return 'pending';
-                case '待排期': return 'scheduled';
-                default: return 'pending';
-            }
-        }
-
-        // 获取状态图标
-        function getStatusIcon(status) {
-            switch (status) {
-                case '已延期': return 'bi-exclamation-circle';
-                case '进行中': return 'bi-arrow-repeat';
-                case '待处理': return 'bi-hourglass';
-                case '待排期': return 'bi-calendar-check';
-                default: return 'bi-hourglass';
-            }
-        }
-
-        // 计算统计数据
-        function calculateStats() {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            let todayCount = 0;
-            let inProgressCount = 0;
-            let overdueCount = 0;
-            let weeklyCount = 0;
-            
-            requirementsData.forEach(item => {
-                const deadline = new Date(item.plan_time);
-                deadline.setHours(0, 0, 0, 0);
-                
-                // 计算今天到期
-                if (deadline.getTime() === today.getTime() && item.status !== '已完成') {
-                    todayCount++;
-                }
-                
-                // 计算进行中
-                if (item.status === '进行中') {
-                    inProgressCount++;
-                }
-                
-                // 计算已延期
-                if (item.status === '已延期') {
-                    overdueCount++;
-                }
-                
-                // 计算本周待办
-                const weekLater = new Date(today);
-                weekLater.setDate(today.getDate() + 7);
-                if (deadline >= today && deadline <= weekLater && item.status !== '已完成') {
-                    weeklyCount++;
-                }
-            });
-            
-            // 更新统计数字
-            document.getElementById('todayCount').textContent = todayCount;
-            document.getElementById('inProgressCount').textContent = inProgressCount;
-            document.getElementById('overdueCount').textContent = overdueCount;
-            document.getElementById('weeklyCount').textContent = weeklyCount;
-        }
-
-        // 智能解析功能
-        function parseText() {
-            const text = document.getElementById('requirementText').value.trim();
-            if (!text) {
-                alert('请输入需求描述文本');
-                return;
-            }
-            
-            // 解析结果
-            const parsedData = {
-                system: extractSystemName(text),
-                owner: extractOwner(text),
-                deadline: extractDeadline(text),
-                description: extractDescription(text)
+        async function submitData() {
+            const id = document.getElementById('editId').value;
+            const payload = {
+                system: document.getElementById('mSystem').value,
+                description: document.getElementById('mDesc').value,
+                owner: document.getElementById('mOwner').value,
+                plan_time: document.getElementById('mDate').value || new Date().toISOString(),
+                status: '进行中'
             };
-            
-            // 打开模态框并填充数据
-            openModal();
-            
-            // 填充解析结果到模态框
-            if (parsedData.system) {
-                document.getElementById('modalSystem').value = parsedData.system;
-            }
-            if (parsedData.description) {
-                document.getElementById('modalDescription').value = parsedData.description;
-            }
-            if (parsedData.owner) {
-                document.getElementById('modalOwner').value = parsedData.owner;
-            }
-            if (parsedData.deadline) {
-                // 尝试将自然语言时间转换为datetime-local格式
-                const formattedDeadline = formatDeadline(parsedData.deadline);
-                if (formattedDeadline) {
-                    document.getElementById('modalDeadline').value = formattedDeadline;
-                }
-            }
-            
-            // 显示解析成功提示
-            showToast('AI解析成功！已自动填充表单');
-        }
 
-        // 提取系统名称
-        function extractSystemName(text) {
-            // 常见系统名称
-            const systems = ['财务系统', '人力资源系统', '客户关系系统', '资产管理系统', '销售系统', '市场系统', '研发系统', '运维系统'];
-            for (const system of systems) {
-                if (text.includes(system)) {
-                    return system;
-                }
-            }
-            
-            // 识别"xx系统"格式
-            const systemRegex = /(.+?)系统/g;
-            const systemMatch = systemRegex.exec(text);
-            if (systemMatch && systemMatch[1]) {
-                return systemMatch[1] + '系统';
-            }
-            
-            // 识别"xx部"格式
-            const deptRegex = /(.+?)部/g;
-            const deptMatch = deptRegex.exec(text);
-            if (deptMatch && deptMatch[1]) {
-                return deptMatch[1] + '部';
-            }
-            
-            return null;
-        }
-
-        // 提取处理人
-        function extractOwner(text) {
-            const nameRegex = /[张王李赵刘陈杨黄周吴徐孙马朱胡郭何高林罗郑梁谢宋唐许韩冯邓曹彭曾肖田董袁潘于蒋蔡余杜叶程苏魏吕丁任沈姚卢姜崔钟谭陆汪范金石廖贾夏韦付方白邹孟熊秦邱江尹薛闫段雷侯龙史陶黎贺顾毛郝龚邵万钱严覃武戴莫孔向汤]{2,4}/g;
-            const matches = text.match(nameRegex);
-            return matches ? matches[0] : null;
-        }
-
-        // 提取截止时间
-        function extractDeadline(text) {
-            const timeRegex = /(\d{4}年\d{1,2}月\d{1,2}日|\d{1,2}月\d{1,2}日|下周一|下周二|下周三|下周四|下周五|下周|明天|后天|今天|\d{1,2}天后|\d{1,2}周后|\d{1,2}个月后|\d{4}-\d{1,2}-\d{1,2})/;
-            const match = text.match(timeRegex);
-            return match ? match[0] : null;
-        }
-
-        // 提取描述
-        function extractDescription(text) {
-            return text.length > 50 ? text.substring(0, 50) + '...' : text;
-        }
-
-        // 格式化截止时间为datetime-local格式
-        function formatDeadline(deadlineText) {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
-            const day = now.getDate();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            
-            // 处理具体日期格式：2026-3-24 或 2026/3/24
-            const dateRegex = /(\d{4})[-/](\d{1,2})[-/](\d{1,2})/;
-            const dateMatch = dateRegex.exec(deadlineText);
-            if (dateMatch) {
-                const y = dateMatch[1];
-                const m = String(dateMatch[2]).padStart(2, '0');
-                const d = String(dateMatch[3]).padStart(2, '0');
-                return `${y}-${m}-${d}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            }
-            
-            // 处理月份格式：3月底
-            const monthEndRegex = /(\d{1,2})月底/;
-            const monthEndMatch = monthEndRegex.exec(deadlineText);
-            if (monthEndMatch) {
-                const m = String(monthEndMatch[1]).padStart(2, '0');
-                // 获取该月的最后一天
-                const lastDay = new Date(year, parseInt(m), 0).getDate();
-                return `${year}-${m}-${String(lastDay).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            }
-            
-            // 处理周格式：下周
-            if (deadlineText.includes('下周')) {
-                const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-                const y = nextWeek.getFullYear();
-                const m = String(nextWeek.getMonth() + 1).padStart(2, '0');
-                const d = String(nextWeek.getDate()).padStart(2, '0');
-                return `${y}-${m}-${d}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            }
-            
-            // 处理相对时间：明天、后天
-            if (deadlineText.includes('明天')) {
-                const tomorrow = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
-                const y = tomorrow.getFullYear();
-                const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
-                const d = String(tomorrow.getDate()).padStart(2, '0');
-                return `${y}-${m}-${d}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            }
-            
-            if (deadlineText.includes('后天')) {
-                const dayAfterTomorrow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-                const y = dayAfterTomorrow.getFullYear();
-                const m = String(dayAfterTomorrow.getMonth() + 1).padStart(2, '0');
-                const d = String(dayAfterTomorrow.getDate()).padStart(2, '0');
-                return `${y}-${m}-${d}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            }
-            
-            // 处理今天
-            if (deadlineText.includes('今天')) {
-                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            }
-            
-            return null;
-        }
-
-        // 清空输入
-        function clearText() {
-            document.getElementById('requirementText').value = '';
-        }
-
-        // 显示示例
-        function showExample() {
-            const examples = [
-                '下周五前张三需要完成财务报表系统更新，需要与财务部门协调',
-                '李四12月31日前完成人力资源系统升级',
-                '王五需要在本周内修复客户关系管理系统的bug',
-                '赵六下周三前完成资产管理系统的新功能开发'
-            ];
-            const randomExample = examples[Math.floor(Math.random() * examples.length)];
-            document.getElementById('requirementText').value = randomExample;
-        }
-
-        // 过滤状态
-        function filterByStatus(status) {
-            const rows = document.querySelectorAll('.requirements-table tbody tr');
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const statusBadge = row.querySelector('.status-badge');
-                const statusText = statusBadge ? statusBadge.textContent.trim() : '';
-                let shouldShow = false;
-                
-                switch (status) {
-                    case 'today':
-                        shouldShow = statusText === '已延期' || statusText === '待处理';
-                        break;
-                    case 'in-progress':
-                        shouldShow = statusText === '进行中';
-                        break;
-                    case 'overdue':
-                        shouldShow = statusText === '已延期';
-                        break;
-                    case 'weekly':
-                        shouldShow = statusText === '待处理' || statusText === '待排期';
-                        break;
-                }
-                
-                row.style.display = shouldShow ? 'table-row' : 'none';
-                if (shouldShow) visibleCount++;
-            });
-            
-            // 显示提示信息
-            showToast(`共找到 ${visibleCount} 条相关需求`);
-        }
-
-        // 搜索需求
-        function searchRequirements() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const searchField = document.getElementById('searchField').value;
-            const rows = document.querySelectorAll('.requirements-table tbody tr');
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                let match = false;
-                
-                if (searchField === 'all') {
-                    // 搜索所有字段
-                    cells.forEach((cell, index) => {
-                        // 跳过序号和操作列
-                        if (index === 0 || index === 7) return;
-                        if (cell.textContent.toLowerCase().includes(searchTerm)) {
-                            match = true;
-                        }
-                    });
-                } else {
-                    // 搜索指定字段
-                    switch (searchField) {
-                        case 'system':
-                            const systemTag = cells[1].querySelector('.system-tag');
-                            if (systemTag && systemTag.textContent.toLowerCase().includes(searchTerm)) {
-                                match = true;
-                            }
-                            break;
-                        case 'description':
-                            if (cells[2].textContent.toLowerCase().includes(searchTerm)) {
-                                match = true;
-                            }
-                            break;
-                        case 'owner':
-                            if (cells[3].textContent.toLowerCase().includes(searchTerm)) {
-                                match = true;
-                            }
-                            break;
-                        case 'status':
-                            const statusBadge = cells[4].querySelector('.status-badge');
-                            if (statusBadge && statusBadge.textContent.toLowerCase().includes(searchTerm)) {
-                                match = true;
-                            }
-                            break;
-                        case 'createdAt':
-                            if (cells[5].textContent.toLowerCase().includes(searchTerm)) {
-                                match = true;
-                            }
-                            break;
-                        case 'deadline':
-                            if (cells[6].textContent.toLowerCase().includes(searchTerm)) {
-                                match = true;
-                            }
-                            break;
-                    }
-                }
-                
-                row.style.display = match ? 'table-row' : 'none';
-                if (match) visibleCount++;
-            });
-            
-            // 显示提示信息
-            if (searchTerm) {
-                showToast(`共找到 ${visibleCount} 条相关需求`);
-            }
-        }
-
-        // 导出需求
-        function exportRequirements() {
-            if (confirm('确定要导出当前需求列表吗？')) {
-                const rows = document.querySelectorAll('.requirements-table tbody tr');
-                let data = '序号\t所属系统\t需求描述\t处理人\t状态\t提出时间\t计划完成\n';
-                
-                rows.forEach(row => {
-                    if (row.style.display !== 'none') {
-                        const cells = row.querySelectorAll('td');
-                        const rowData = [];
-                        
-                        cells.forEach((cell, index) => {
-                            // 跳过操作列
-                            if (index === 7) return;
-                            // 提取系统标签文本
-                            if (index === 1) {
-                                const systemTag = cell.querySelector('.system-tag');
-                                rowData.push(systemTag ? systemTag.textContent.trim() : cell.textContent.trim());
-                            } 
-                            // 提取状态文本
-                            else if (index === 4) {
-                                const statusBadge = cell.querySelector('.status-badge');
-                                rowData.push(statusBadge ? statusBadge.textContent.trim() : cell.textContent.trim());
-                            }
-                            else {
-                                rowData.push(cell.textContent.trim());
-                            }
-                        });
-                        
-                        data += rowData.join('\t') + '\n';
-                    }
-                });
-                
-                // 创建下载链接 - 使用制表符分隔，Excel可以直接打开
-                const blob = new Blob([data], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', `需求列表_${new Date().toISOString().split('T')[0]}.xlsx`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                showToast('需求列表导出成功');
-            }
-        }
-
-        // 新增需求
-        function addRequirement() {
-            openModal(null);
-        }
-
-        // 打开模态框
-        function openModal(id = null) {
-            const modal = document.getElementById('demandModal');
-            const title = document.getElementById('modalTitle');
-            const form = document.getElementById('demandForm');
-            
-            // 重置表单
-            form.reset();
-            document.getElementById('requirementId').value = '';
-            
+            let res;
             if (id) {
-                // 编辑模式
-                title.textContent = '编辑需求';
-                document.getElementById('requirementId').value = id;
-                
-                // 查找数据
-                const data = requirementsData.find(item => item.id === id);
-                if (data) {
-                    document.getElementById('modalSystem').value = data.system;
-                    document.getElementById('modalDescription').value = data.description.replace(/\n/g, '\n');
-                    document.getElementById('modalOwner').value = data.owner;
-                    // 转换时间格式为datetime-local
-                    const createdAt = new Date(data.created_at).toISOString().slice(0, 16);
-                    const deadline = new Date(data.plan_time).toISOString().slice(0, 16);
-                    document.getElementById('modalCreatedAt').value = createdAt;
-                    document.getElementById('modalDeadline').value = deadline;
-                }
+                res = await supabaseClient.from('requirements').update(payload).eq('id', id);
             } else {
-                // 新增模式
-                title.textContent = '新增需求';
-                // 自动设置当前时间为需求提出时间
-                const now = new Date();
-                const formattedNow = now.toISOString().slice(0, 16);
-                document.getElementById('modalCreatedAt').value = formattedNow;
+                res = await supabaseClient.from('requirements').insert([payload]);
             }
-            
-            // 显示模态框
-            modal.style.display = 'flex';
-        }
 
-        // 关闭模态框
-        function closeModal() {
-            const modal = document.getElementById('demandModal');
-            modal.style.display = 'none';
-        }
-
-        // 保存需求
-        async function saveRequirement() {
-            const id = parseInt(document.getElementById('requirementId').value);
-            const system = document.getElementById('modalSystem').value;
-            const description = document.getElementById('modalDescription').value;
-            const owner = document.getElementById('modalOwner').value;
-            const createdAt = document.getElementById('modalCreatedAt').value;
-            const deadline = document.getElementById('modalDeadline').value;
-            
-            // 验证表单
-            if (!system || !description || !owner || !createdAt || !deadline) {
-                alert('请填写所有必填字段');
-                return;
-            }
-            
-            try {
-                if (!supabase) {
-                    showToast('Supabase 未初始化，无法保存数据');
-                    return;
-                }
-                
-                if (id) {
-                    // 编辑模式
-                    const { data, error } = await supabase
-                        .from('requirements')
-                        .update({
-                            system,
-                            description,
-                            owner,
-                            created_at: new Date(createdAt).toISOString(),
-                            plan_time: new Date(deadline).toISOString()
-                        })
-                        .eq('id', id)
-                        .select();
-                    
-                    if (error) {
-                        console.error('更新需求失败:', error);
-                        showToast('更新需求失败，请重试');
-                    } else {
-                        showToast(`需求 #${id} 更新成功！`);
-                        // 重新加载数据
-                        await fetchRequirements();
-                    }
-                } else {
-                    // 新增模式
-                    const { data, error } = await supabase
-                        .from('requirements')
-                        .insert({
-                            system,
-                            description,
-                            owner,
-                            status: '待处理',
-                            created_at: new Date(createdAt).toISOString(),
-                            plan_time: new Date(deadline).toISOString()
-                        })
-                        .select();
-                    
-                    if (error) {
-                        console.error('新增需求失败:', error);
-                        showToast('新增需求失败，请重试');
-                    } else {
-                        showToast('新增需求成功！');
-                        // 重新加载数据
-                        await fetchRequirements();
-                    }
-                }
-            } catch (error) {
-                console.error('保存需求异常:', error);
-                showToast('保存需求异常，请重试');
-            } finally {
-                // 关闭模态框
+            if (res.error) {
+                showToast("操作失败：" + res.error.message);
+            } else {
+                showToast("保存成功！");
                 closeModal();
+                loadData();
             }
         }
 
-        // 编辑需求
-        function editRequirement(id, event) {
-            if (event) event.stopPropagation();
-            openModal(id);
+        // 弹窗管理
+        function addRequirement() {
+            document.getElementById('editId').value = '';
+            document.getElementById('modalTitle').innerText = "新增需求";
+            document.getElementById('mSystem').value = '';
+            document.getElementById('mDesc').value = '';
+            document.getElementById('mOwner').value = '';
+            document.getElementById('demandModal').style.display = 'flex';
         }
 
-        // 删除需求
-        async function deleteRequirement(id, event) {
-            if (event) event.stopPropagation();
-            if (confirm(`确定要删除需求 #${id} 吗？`)) {
-                try {
-                    if (!supabase) {
-                        showToast('Supabase 未初始化，无法删除数据');
-                        return;
-                    }
-                    
-                    const { error } = await supabase
-                        .from('requirements')
-                        .delete()
-                        .eq('id', id);
-                    
-                    if (error) {
-                        console.error('删除需求失败:', error);
-                        showToast('删除需求失败，请重试');
-                    } else {
-                        showToast(`需求 #${id} 已删除`);
-                        // 重新加载数据
-                        await fetchRequirements();
-                    }
-                } catch (error) {
-                    console.error('删除需求异常:', error);
-                    showToast('删除需求异常，请重试');
-                }
-            }
+        function editItem(id) {
+            const item = allData.find(d => d.id === id);
+            document.getElementById('editId').value = item.id;
+            document.getElementById('modalTitle').innerText = "编辑需求";
+            document.getElementById('mSystem').value = item.system;
+            document.getElementById('mDesc').value = item.description;
+            document.getElementById('mOwner').value = item.owner;
+            document.getElementById('demandModal').style.display = 'flex';
         }
 
-        // 显示提示信息
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            // 3秒后隐藏
-            setTimeout(() => {
-                toast.style.animation = 'slideIn 0.3s ease-out reverse';
-                setTimeout(() => {
-                    document.body.removeChild(toast);
-                }, 300);
-            }, 3000);
+        async function deleteItem(id) {
+            if(!confirm("确定删除？")) return;
+            await supabaseClient.from('requirements').delete().eq('id', id);
+            loadData();
+        }
+
+        function closeModal() { document.getElementById('demandModal').style.display = 'none'; }
+        
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
         }
     </script>
 </body>
