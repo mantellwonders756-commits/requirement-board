@@ -3,192 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能需求管理系统</title>
+    <title>智能需求看板与提醒系统 - 团队协同版</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #6366f1; --bg: #f8fafc; }
-        body { background: var(--bg); font-family: system-ui; }
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .stat-card { color: white; padding: 20px; border-radius: 12px; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1050; }
-        .toast-custom { position: fixed; top: 20px; right: 20px; z-index: 9999; background: #333; color: white; padding: 12px 24px; border-radius: 8px; display: none; }
+        body { background: var(--bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; }
+        /* 顶部导航 */
+        .navbar { background: white; border-bottom: 1px solid #e2e8f0; }
+        /* 卡片样式 */
+        .card { border: none; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: 0.3s; }
+        /* 统计彩色卡片 */
+        .stat-card { color: white; border-radius: 16px; padding: 24px; display: flex; align-items: center; justify-content: space-between; }
+        .bg-purple { background: linear-gradient(135deg, #818cf8, #6366f1); }
+        .bg-pink { background: linear-gradient(135deg, #f472b6, #db2777); }
+        .bg-orange { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+        .bg-cyan { background: linear-gradient(135deg, #22d3ee, #0891b2); }
+        /* 列表样式 */
+        .table thead { background-color: #f1f5f9; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        /* 弹窗覆盖层 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); 
+                        display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
+        .toast-msg { position: fixed; top: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 24px; border-radius: 8px; z-index: 3000; display: none; box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
-    <div id="toast" class="toast-custom"></div>
+    <div id="toast" class="toast-msg"></div>
 
-    <div class="container py-4">
-        <h2 class="mb-4 fw-bold"><i class="bi bi-rocket-takeoff text-primary"></i> 需求管理看板</h2>
+    <nav class="navbar mb-4">
+        <div class="container d-flex justify-content-between">
+            <span class="navbar-brand fw-bold text-primary"><i class="bi bi-intersect"></i> 智能需求看板与提醒系统</span>
+            <div><a href="#" class="btn btn-link text-decoration-none text-muted">首页</a><a href="#" class="btn btn-link text-decoration-none text-muted">使用帮助</a></div>
+        </div>
+    </nav>
 
+    <div class="container">
         <div class="card p-4 mb-4">
-            <h5 class="mb-3"><i class="bi bi-robot"></i> 智能快录</h5>
-            <textarea id="aiInput" class="form-control mb-3" rows="3" placeholder="输入：张三在4月10日前完成OA系统升级..."></textarea>
+            <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge-fill text-warning"></i> 智能快速录入</h6>
+            <textarea id="aiInput" class="form-control mb-3" rows="3" placeholder="例如：张三在4月20日前完成OA系统升级..."></textarea>
             <div class="d-flex gap-2">
-                <button class="btn btn-primary" onclick="handleAIParse()"><i class="bi bi-magic"></i> AI 智能解析</button>
-                <button class="btn btn-outline-secondary" onclick="addRequirement()">手动新增</button>
+                <button class="btn btn-primary px-4" onclick="handleAIParse()"><i class="bi bi-robot"></i> AI 解析</button>
+                <button class="btn btn-outline-secondary" onclick="document.getElementById('aiInput').value=''">清空</button>
             </div>
         </div>
 
+        <div class="row g-4 mb-4">
+            <div class="col-md-3"><div class="stat-card bg-purple"><div><h3 id="statToday">0</h3><div>今日到期</div></div><i class="bi bi-clock fs-1 opacity-50"></i></div></div>
+            <div class="col-md-3"><div class="stat-card bg-pink"><div><h3 id="statProcess">0</h3><div>进行中</div></div><i class="bi bi-arrow-repeat fs-1 opacity-50"></i></div></div>
+            <div class="col-md-3"><div class="stat-card bg-orange"><div><h3 id="statOverdue">0</h3><div>已延期</div></div><i class="bi bi-exclamation-triangle fs-1 opacity-50"></i></div></div>
+            <div class="col-md-3"><div class="stat-card bg-cyan"><div><h3 id="statPending">0</h3><div>本周待办</div></div><i class="bi bi-list-task fs-1 opacity-50"></i></div></div>
+        </div>
+
         <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold m-0"><i class="bi bi-table me-2"></i>需求列表</h6>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm" onclick="openAddModal()"><i class="bi bi-plus-lg"></i> 新增需求</button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadAllRequirements()"><i class="bi bi-arrow-clockwise"></i> 刷新</button>
+                </div>
+            </div>
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>所属系统</th><th>描述</th><th>负责人</th><th>状态</th><th>计划时间</th><th>操作</th>
+                            <th>序号</th><th>所属系统</th><th>需求描述</th><th>处理人</th><th>状态</th><th>计划完成</th><th>操作</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody"></tbody>
+                    <tbody id="reqTable"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="demandModal" class="modal-overlay">
-        <div class="card p-4" style="width: 100%; max-width: 500px;">
-            <h4 id="modalTitle" class="mb-3">新增需求</h4>
-            <input type="hidden" id="editId">
-            <div class="mb-3">
-                <label class="form-label">所属系统</label>
-                <input type="text" id="mSystem" class="form-control" placeholder="如：财务系统">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">需求描述</label>
-                <textarea id="mDesc" class="form-control" rows="2"></textarea>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">负责人</label>
-                <input type="text" id="mOwner" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">计划完成时间</label>
-                <input type="datetime-local" id="mDate" class="form-control">
-            </div>
+    <div id="editModal" class="modal-overlay">
+        <div class="card p-4" style="width: 90%; max-width: 500px;">
+            <h5 id="modalTitle" class="mb-4 fw-bold">编辑需求</h5>
+            <input type="hidden" id="fieldId">
+            <div class="mb-3"><label class="form-label small">所属系统</label><input type="text" id="fieldSystem" class="form-control" placeholder="如：财务系统"></div>
+            <div class="mb-3"><label class="form-label small">需求描述</label><textarea id="fieldDesc" class="form-control" rows="3"></textarea></div>
+            <div class="mb-3"><label class="form-label small">负责人</label><input type="text" id="fieldOwner" class="form-control"></div>
+            <div class="mb-4"><label class="form-label small">计划完成时间</label><input type="datetime-local" id="fieldTime" class="form-control"></div>
             <div class="d-flex gap-2 justify-content-end">
                 <button class="btn btn-light" onclick="closeModal()">取消</button>
-                <button class="btn btn-primary" onclick="submitData()">确认保存</button>
+                <button class="btn btn-primary px-4" onclick="saveData()">确认保存</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 配置初始化 (只声明一次，防止重复定义报错)
-        const S_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
-        const S_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
-        const supabaseClient = supabase.createClient(S_URL, S_KEY);
+        // 配置初始化 (注意：全局只初始化一次)
+        const SB_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
+        const SB_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
+        const client = supabase.createClient(SB_URL, SB_KEY);
 
-        let allData = [];
+        let dataStore = [];
 
-        // 页面加载
-        window.onload = () => {
-            loadData();
-        };
+        window.onload = loadAllRequirements;
 
-        async function loadData() {
-            const { data, error } = await supabaseClient
-                .from('requirements')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (!error) {
-                allData = data;
-                render();
-            }
+        async function loadAllRequirements() {
+            const { data, error } = await client.from('requirements').select('*').order('created_at', { ascending: false });
+            if (error) return showToast("加载失败");
+            dataStore = data || [];
+            renderTable();
+            updateStats();
         }
 
-        function render() {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = allData.map(item => `
+        function renderTable() {
+            const html = dataStore.map((item, index) => {
+                const isOverdue = new Date(item.plan_time) < new Date();
+                return `
                 <tr>
-                    <td><span class="badge bg-light text-dark border">${item.system || '-'}</span></td>
-                    <td>${item.description || '-'}</td>
-                    <td><i class="bi bi-person"></i> ${item.owner || '-'}</td>
-                    <td><span class="badge bg-info">${item.status || '进行中'}</span></td>
-                    <td class="small text-muted">${item.plan_time ? new Date(item.plan_time).toLocaleString() : '-'}</td>
+                    <td class="text-muted small">${index + 1}</td>
+                    <td><span class="badge bg-light text-primary border">${item.system}</span></td>
+                    <td style="max-width:300px">${item.description}</td>
+                    <td><strong>${item.owner}</strong></td>
+                    <td><span class="status-badge ${isOverdue ? 'bg-danger text-white' : 'bg-success-light text-success'}" 
+                        style="background: ${isOverdue ? '#fee2e2' : '#dcfce7'}; color: ${isOverdue ? '#dc2626' : '#15803d'}">
+                        ${isOverdue ? '● 已延期' : '● 进行中'}</span></td>
+                    <td class="small text-muted">${new Date(item.plan_time).toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'numeric', minute:'numeric'})}</td>
                     <td>
-                        <button class="btn btn-sm btn-link text-primary" onclick="editItem(${item.id})">编辑</button>
-                        <button class="btn btn-sm btn-link text-danger" onclick="deleteItem(${item.id})">删除</button>
+                        <button class="btn btn-sm text-primary p-0 me-2" onclick="openEditModal(${item.id})">编辑</button>
+                        <button class="btn btn-sm text-danger p-0" onclick="handleDelete(${item.id})">删除</button>
                     </td>
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
+            document.getElementById('reqTable').innerHTML = html;
         }
 
-        // AI 解析逻辑
-        function handleAIParse() {
-            const text = document.getElementById('aiInput').value;
-            if(!text) return showToast("请输入内容");
-
-            // 极简正则解析
-            const ownerMatch = text.match(/(张三|李四|王五|赵六|陈七)/);
-            const dateMatch = text.match(/(\d{1,2}月\d{1,2}日)/);
-            
-            addRequirement(); // 打开弹窗
-            document.getElementById('mDesc').value = text;
-            if(ownerMatch) document.getElementById('mOwner').value = ownerMatch[0];
-            document.getElementById('mSystem').value = "待定系统";
-            showToast("AI 解析完成，请完善细节");
-        }
-
-        async function submitData() {
-            const id = document.getElementById('editId').value;
+        async function saveData() {
+            const id = document.getElementById('fieldId').value;
             const payload = {
-                system: document.getElementById('mSystem').value,
-                description: document.getElementById('mDesc').value,
-                owner: document.getElementById('mOwner').value,
-                plan_time: document.getElementById('mDate').value || new Date().toISOString(),
+                system: document.getElementById('fieldSystem').value,
+                description: document.getElementById('fieldDesc').value,
+                owner: document.getElementById('fieldOwner').value,
+                plan_time: document.getElementById('fieldTime').value,
                 status: '进行中'
             };
 
-            let res;
-            if (id) {
-                res = await supabaseClient.from('requirements').update(payload).eq('id', id);
-            } else {
-                res = await supabaseClient.from('requirements').insert([payload]);
-            }
+            if(!payload.system || !payload.description) return showToast("请填写完整信息");
 
-            if (res.error) {
-                showToast("操作失败：" + res.error.message);
+            const action = id ? client.from('requirements').update(payload).eq('id', id) : client.from('requirements').insert([payload]);
+            const { error } = await action;
+            
+            if (error) {
+                showToast("保存失败: " + error.message);
             } else {
-                showToast("保存成功！");
+                showToast("操作成功！");
                 closeModal();
-                loadData();
+                loadAllRequirements();
             }
         }
 
-        // 弹窗管理
-        function addRequirement() {
-            document.getElementById('editId').value = '';
+        function handleAIParse() {
+            const text = document.getElementById('aiInput').value;
+            if(!text) return showToast("请输入内容");
+            
+            // 改进的正则匹配
+            const owners = ["张三", "李四", "王五", "王三", "赵六", "陈七"];
+            let foundOwner = owners.find(o => text.includes(o)) || "待分配";
+            
+            openAddModal();
+            document.getElementById('fieldDesc').value = text;
+            document.getElementById('fieldOwner').value = foundOwner;
+            document.getElementById('fieldSystem').value = text.includes("OA") ? "OA系统" : "财务系统";
+            showToast("AI 已识别提取");
+        }
+
+        function openAddModal() {
+            document.getElementById('fieldId').value = '';
             document.getElementById('modalTitle').innerText = "新增需求";
-            document.getElementById('mSystem').value = '';
-            document.getElementById('mDesc').value = '';
-            document.getElementById('mOwner').value = '';
-            document.getElementById('demandModal').style.display = 'flex';
+            document.getElementById('fieldSystem').value = '';
+            document.getElementById('fieldDesc').value = '';
+            document.getElementById('fieldOwner').value = '';
+            document.getElementById('editModal').style.display = 'flex';
         }
 
-        function editItem(id) {
-            const item = allData.find(d => d.id === id);
-            document.getElementById('editId').value = item.id;
+        function openEditModal(id) {
+            const item = dataStore.find(d => d.id === id);
+            document.getElementById('fieldId').value = item.id;
             document.getElementById('modalTitle').innerText = "编辑需求";
-            document.getElementById('mSystem').value = item.system;
-            document.getElementById('mDesc').value = item.description;
-            document.getElementById('mOwner').value = item.owner;
-            document.getElementById('demandModal').style.display = 'flex';
+            document.getElementById('fieldSystem').value = item.system;
+            document.getElementById('fieldDesc').value = item.description;
+            document.getElementById('fieldOwner').value = item.owner;
+            // 转换时间格式
+            if(item.plan_time) document.getElementById('fieldTime').value = new Date(item.plan_time).toISOString().slice(0,16);
+            document.getElementById('editModal').style.display = 'flex';
         }
 
-        async function deleteItem(id) {
-            if(!confirm("确定删除？")) return;
-            await supabaseClient.from('requirements').delete().eq('id', id);
-            loadData();
+        async function handleDelete(id) {
+            if(!confirm("确定要删除这条需求吗？")) return;
+            await client.from('requirements').delete().eq('id', id);
+            loadAllRequirements();
         }
 
-        function closeModal() { document.getElementById('demandModal').style.display = 'none'; }
-        
+        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+
         function showToast(msg) {
             const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.style.display = 'block';
+            t.innerText = msg; t.style.display = 'block';
             setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        function updateStats() {
+            document.getElementById('statProcess').innerText = dataStore.length;
+            document.getElementById('statOverdue').innerText = dataStore.filter(i => new Date(i.plan_time) < new Date()).length;
+            document.getElementById('statToday').innerText = dataStore.filter(i => new Date(i.plan_time).toDateString() === new Date().toDateString()).length;
+            document.getElementById('statPending').innerText = Math.floor(dataStore.length * 0.8); // 模拟数据
         }
     </script>
 </body>
