@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能需求看板与提醒系统</title>
+    <title>智能需求看板与提醒系统 - 团队协同版</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary-color: #4A5568;
@@ -553,6 +554,30 @@
             }
         }
 
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3B82F6;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .stats-grid {
                 grid-template-columns: 1fr;
@@ -593,7 +618,7 @@
                 <div class="col-md-6">
                     <div class="navbar-brand">
                         <i class="bi bi-bullseye"></i>
-                        智能需求看板与提醒系统
+                        智能需求看板与提醒系统 - 团队协同版
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -643,7 +668,7 @@
             <div class="stats-grid">
                 <div class="stat-card" onclick="filterByStatus('today')">
                     <div class="stat-content">
-                        <div class="stat-number">4</div>
+                        <div class="stat-number" id="todayCount">0</div>
                         <div class="stat-label">今日到期</div>
                     </div>
                     <div class="stat-icon">
@@ -652,7 +677,7 @@
                 </div>
                 <div class="stat-card" onclick="filterByStatus('in-progress')">
                     <div class="stat-content">
-                        <div class="stat-number">1</div>
+                        <div class="stat-number" id="inProgressCount">0</div>
                         <div class="stat-label">进行中</div>
                     </div>
                     <div class="stat-icon">
@@ -661,7 +686,7 @@
                 </div>
                 <div class="stat-card" onclick="filterByStatus('overdue')">
                     <div class="stat-content">
-                        <div class="stat-number">1</div>
+                        <div class="stat-number" id="overdueCount">0</div>
                         <div class="stat-label">已延期</div>
                     </div>
                     <div class="stat-icon">
@@ -670,7 +695,7 @@
                 </div>
                 <div class="stat-card" onclick="filterByStatus('weekly')">
                     <div class="stat-content">
-                        <div class="stat-number">3</div>
+                        <div class="stat-number" id="weeklyCount">0</div>
                         <div class="stat-label">本周待办</div>
                     </div>
                     <div class="stat-icon">
@@ -687,7 +712,7 @@
                     <i class="bi bi-table"></i>
                     需求列表
                 </div>
-                <button class="refresh-btn" onclick="refreshTable()">
+                <button class="refresh-btn" onclick="loadRequirements()">
                     <i class="bi bi-arrow-clockwise"></i>
                     刷新
                 </button>
@@ -711,7 +736,7 @@
                         <option value="description">需求描述</option>
                         <option value="owner">处理人</option>
                         <option value="status">状态</option>
-                        <option value="created">提出时间</option>
+                        <option value="createdAt">提出时间</option>
                         <option value="deadline">计划完成</option>
                     </select>
                     <div class="search-input-container">
@@ -722,6 +747,10 @@
             </div>
             
             <div class="requirements-table-container">
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>加载中...</span>
+                </div>
                 <table class="requirements-table">
                     <thead>
                         <tr>
@@ -783,53 +812,144 @@
     </div>
 
     <script>
+        // Supabase 配置
+        const supabaseUrl = 'https://gcetwdskijgnegzvsxta.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
         // 全局需求数据数组
-        let requirementsData = [
-            {
-                id: 3,
-                system: '客户关系系统',
-                description: '修复客户数据导入功能\n技术难点需要攻关',
-                owner: '王五',
-                email: 'wangwu@example.com',
-                status: '已延期',
-                createdAt: '2026-03-20 03:01',
-                deadline: '2026-03-19 11:01',
-                days: '1天'
-            },
-            {
-                id: 1,
-                system: '财务系统',
-                description: '完成2024年第四季度财务报表编制\n需要与审计部门协调',
-                owner: '张三',
-                email: 'zhangsan@example.com',
-                status: '进行中',
-                createdAt: '2026-03-20 03:01',
-                deadline: '2026-03-24 11:01',
-                days: '剩余3天'
-            },
-            {
-                id: 2,
-                system: '人力资源系统',
-                description: '更新员工绩效考核模块\n等待需求确认',
-                owner: '李四',
-                email: 'lisi@example.com',
-                status: '待处理',
-                createdAt: '2026-03-20 03:01',
-                deadline: '2026-03-28 11:01',
-                days: '剩余7天'
-            },
-            {
-                id: 4,
-                system: '资产管理系统',
-                description: '另外这个文案也调整一下：您有x个即将到期或已到期的x。表格里最后一列，看看能不能直接把续期链接加进去。如果所有人都是同一个模板，模板里的每个人不一样，那就把续期链接放进去，一点就能够和在资产管理系统上点续期是一样的效果。',
-                owner: '待分配',
-                email: 'tefen@000001@qq.com',
-                status: '待排期',
-                createdAt: '2026-03-20 03:08',
-                deadline: '2026-03-28 11:07',
-                days: '剩余7天'
+        let requirementsData = [];
+
+        // 页面加载时渲染表格
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRequirements();
+        });
+
+        // 加载需求数据
+        async function loadRequirements() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+            
+            try {
+                const { data, error } = await supabase
+                    .from('requirements')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.error('加载需求数据失败:', error);
+                    showToast('加载数据失败，请重试');
+                } else {
+                    requirementsData = data;
+                    renderTable();
+                    calculateStats();
+                }
+            } catch (error) {
+                console.error('加载需求数据异常:', error);
+                showToast('加载数据异常，请重试');
+            } finally {
+                loading.style.display = 'none';
             }
-        ];
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tableBody = document.getElementById('requirementsTableBody');
+            tableBody.innerHTML = '';
+
+            requirementsData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                
+                // 设置行背景色
+                if (item.status === '已延期') {
+                    row.style.backgroundColor = '#FEF2F2';
+                }
+
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><span class="system-tag">${item.system}</span></td>
+                    <td>${item.description.replace(/\n/g, '<br>')}</td>
+                    <td>${item.owner}</td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span class="status-badge status-${getStatusClass(item.status)}">
+                                <i class="bi ${getStatusIcon(item.status)}"></i>
+                                ${item.status}
+                            </span>
+                            <small class="time-tag">${calculateDays(item.plan_time)}</small>
+                        </div>
+                    </td>
+                    <td>${formatDateTime(item.created_at)}</td>
+                    <td>${formatDateTime(item.plan_time)}</td>
+                    <td>
+                        <div class="action-buttons-small">
+                            <button class="btn-small btn-edit" onclick="editRequirement(${item.id}, event)">
+                                <i class="bi bi-pencil"></i>
+                                编辑
+                            </button>
+                            <button class="btn-small btn-delete" onclick="deleteRequirement(${item.id}, event)">
+                                <i class="bi bi-trash"></i>
+                                删除
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 格式化日期时间
+        function formatDateTime(dateTimeString) {
+            if (!dateTimeString) return '';
+            const date = new Date(dateTimeString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // 计算剩余天数
+        function calculateDays(planTimeString) {
+            if (!planTimeString) return '';
+            const planDate = new Date(planTimeString);
+            const now = new Date();
+            const diffTime = planDate - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) {
+                return `已延期${Math.abs(diffDays)}天`;
+            } else if (diffDays === 0) {
+                return '今天到期';
+            } else {
+                return `剩余${diffDays}天`;
+            }
+        }
+
+        // 获取状态样式类
+        function getStatusClass(status) {
+            switch (status) {
+                case '已延期': return 'overdue';
+                case '进行中': return 'in-progress';
+                case '待处理': return 'pending';
+                case '待排期': return 'scheduled';
+                default: return 'pending';
+            }
+        }
+
+        // 获取状态图标
+        function getStatusIcon(status) {
+            switch (status) {
+                case '已延期': return 'bi-exclamation-circle';
+                case '进行中': return 'bi-arrow-repeat';
+                case '待处理': return 'bi-hourglass';
+                case '待排期': return 'bi-calendar-check';
+                default: return 'bi-hourglass';
+            }
+        }
 
         // 计算统计数据
         function calculateStats() {
@@ -842,7 +962,7 @@
             let weeklyCount = 0;
             
             requirementsData.forEach(item => {
-                const deadline = new Date(item.deadline.replace(' ', 'T'));
+                const deadline = new Date(item.plan_time);
                 deadline.setHours(0, 0, 0, 0);
                 
                 // 计算今天到期
@@ -869,88 +989,10 @@
             });
             
             // 更新统计数字
-            document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-number').textContent = todayCount;
-            document.querySelector('.stats-grid .stat-card:nth-child(2) .stat-number').textContent = inProgressCount;
-            document.querySelector('.stats-grid .stat-card:nth-child(3) .stat-number').textContent = overdueCount;
-            document.querySelector('.stats-grid .stat-card:nth-child(4) .stat-number').textContent = weeklyCount;
-        }
-
-        // 页面加载时渲染表格
-        document.addEventListener('DOMContentLoaded', function() {
-            renderTable();
-            calculateStats();
-        });
-
-        // 渲染表格
-        function renderTable() {
-            const tableBody = document.getElementById('requirementsTableBody');
-            tableBody.innerHTML = '';
-
-            // 按ID排序
-            const sortedData = [...requirementsData].sort((a, b) => a.id - b.id);
-
-            sortedData.forEach((item, index) => {
-                const row = document.createElement('tr');
-                
-                // 设置行背景色
-                if (item.status === '已延期') {
-                    row.style.backgroundColor = '#FEF2F2';
-                }
-
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td><span class="system-tag">${item.system}</span></td>
-                    <td>${item.description.replace(/\n/g, '<br>')}</td>
-                    <td>${item.owner}<br><small class="text-muted">${item.email}</small></td>
-                    <td>
-                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                            <span class="status-badge status-${getStatusClass(item.status)}">
-                                <i class="bi ${getStatusIcon(item.status)}"></i>
-                                ${item.status}
-                            </span>
-                            <small class="time-tag">${item.days}</small>
-                        </div>
-                    </td>
-                    <td>${item.createdAt}</td>
-                    <td>${item.deadline}</td>
-                    <td>
-                        <div class="action-buttons-small">
-                            <button class="btn-small btn-edit" onclick="editRequirement(${item.id}, event)">
-                                <i class="bi bi-pencil"></i>
-                                编辑
-                            </button>
-                            <button class="btn-small btn-delete" onclick="deleteRequirement(${item.id}, event)">
-                                <i class="bi bi-trash"></i>
-                                删除
-                            </button>
-                        </div>
-                    </td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
-        }
-
-        // 获取状态样式类
-        function getStatusClass(status) {
-            switch (status) {
-                case '已延期': return 'overdue';
-                case '进行中': return 'in-progress';
-                case '待处理': return 'pending';
-                case '待排期': return 'scheduled';
-                default: return 'pending';
-            }
-        }
-
-        // 获取状态图标
-        function getStatusIcon(status) {
-            switch (status) {
-                case '已延期': return 'bi-exclamation-circle';
-                case '进行中': return 'bi-arrow-repeat';
-                case '待处理': return 'bi-hourglass';
-                case '待排期': return 'bi-calendar-check';
-                default: return 'bi-hourglass';
-            }
+            document.getElementById('todayCount').textContent = todayCount;
+            document.getElementById('inProgressCount').textContent = inProgressCount;
+            document.getElementById('overdueCount').textContent = overdueCount;
+            document.getElementById('weeklyCount').textContent = weeklyCount;
         }
 
         // 智能解析功能
@@ -963,7 +1005,7 @@
             
             // 解析结果
             const parsedData = {
-                system_name: extractSystemName(text),
+                system: extractSystemName(text),
                 owner: extractOwner(text),
                 deadline: extractDeadline(text),
                 description: extractDescription(text)
@@ -973,8 +1015,8 @@
             openModal();
             
             // 填充解析结果到模态框
-            if (parsedData.system_name) {
-                document.getElementById('modalSystem').value = parsedData.system_name;
+            if (parsedData.system) {
+                document.getElementById('modalSystem').value = parsedData.system;
             }
             if (parsedData.description) {
                 document.getElementById('modalDescription').value = parsedData.description;
@@ -1198,7 +1240,7 @@
                                 match = true;
                             }
                             break;
-                        case 'created':
+                        case 'createdAt':
                             if (cells[5].textContent.toLowerCase().includes(searchTerm)) {
                                 match = true;
                             }
@@ -1296,8 +1338,8 @@
                     document.getElementById('modalDescription').value = data.description.replace(/\n/g, '\n');
                     document.getElementById('modalOwner').value = data.owner;
                     // 转换时间格式为datetime-local
-                    const createdAt = data.createdAt.replace(' ', 'T');
-                    const deadline = data.deadline.replace(' ', 'T');
+                    const createdAt = new Date(data.created_at).toISOString().slice(0, 16);
+                    const deadline = new Date(data.plan_time).toISOString().slice(0, 16);
                     document.getElementById('modalCreatedAt').value = createdAt;
                     document.getElementById('modalDeadline').value = deadline;
                 }
@@ -1321,7 +1363,7 @@
         }
 
         // 保存需求
-        function saveRequirement() {
+        async function saveRequirement() {
             const id = parseInt(document.getElementById('requirementId').value);
             const system = document.getElementById('modalSystem').value;
             const description = document.getElementById('modalDescription').value;
@@ -1335,49 +1377,59 @@
                 return;
             }
             
-            // 转换时间格式
-            const formattedCreatedAt = createdAt.replace('T', ' ');
-            const formattedDeadline = deadline.replace('T', ' ');
-            
-            if (id) {
-                // 编辑模式
-                const index = requirementsData.findIndex(item => item.id === id);
-                if (index !== -1) {
-                    requirementsData[index] = {
-                        ...requirementsData[index],
-                        system,
-                        description,
-                        owner,
-                        createdAt: formattedCreatedAt,
-                        deadline: formattedDeadline
-                    };
-                    showToast(`需求 #${id} 更新成功！`);
+            try {
+                if (id) {
+                    // 编辑模式
+                    const { data, error } = await supabase
+                        .from('requirements')
+                        .update({
+                            system,
+                            description,
+                            owner,
+                            created_at: new Date(createdAt).toISOString(),
+                            plan_time: new Date(deadline).toISOString()
+                        })
+                        .eq('id', id)
+                        .select();
+                    
+                    if (error) {
+                        console.error('更新需求失败:', error);
+                        showToast('更新需求失败，请重试');
+                    } else {
+                        showToast(`需求 #${id} 更新成功！`);
+                        // 重新加载数据
+                        await loadRequirements();
+                    }
+                } else {
+                    // 新增模式
+                    const { data, error } = await supabase
+                        .from('requirements')
+                        .insert({
+                            system,
+                            description,
+                            owner,
+                            status: '待处理',
+                            created_at: new Date(createdAt).toISOString(),
+                            plan_time: new Date(deadline).toISOString()
+                        })
+                        .select();
+                    
+                    if (error) {
+                        console.error('新增需求失败:', error);
+                        showToast('新增需求失败，请重试');
+                    } else {
+                        showToast('新增需求成功！');
+                        // 重新加载数据
+                        await loadRequirements();
+                    }
                 }
-            } else {
-                // 新增模式
-                const newId = Math.max(...requirementsData.map(item => item.id)) + 1;
-                const newRequirement = {
-                    id: newId,
-                    system,
-                    description,
-                    owner,
-                    email: '',
-                    status: '待处理',
-                    createdAt: formattedCreatedAt,
-                    deadline: formattedDeadline,
-                    days: '剩余7天'
-                };
-                requirementsData.push(newRequirement);
-                showToast('新增需求成功！');
+            } catch (error) {
+                console.error('保存需求异常:', error);
+                showToast('保存需求异常，请重试');
+            } finally {
+                // 关闭模态框
+                closeModal();
             }
-            
-            // 关闭模态框
-            closeModal();
-            
-            // 重新渲染表格
-            renderTable();
-            // 更新统计数据
-            calculateStats();
         }
 
         // 编辑需求
@@ -1387,21 +1439,28 @@
         }
 
         // 删除需求
-        function deleteRequirement(id, event) {
+        async function deleteRequirement(id, event) {
             if (event) event.stopPropagation();
             if (confirm(`确定要删除需求 #${id} 吗？`)) {
-                requirementsData = requirementsData.filter(item => item.id !== id);
-                showToast(`需求 #${id} 已删除`);
-            renderTable();
-            // 更新统计数据
-            calculateStats();
+                try {
+                    const { error } = await supabase
+                        .from('requirements')
+                        .delete()
+                        .eq('id', id);
+                    
+                    if (error) {
+                        console.error('删除需求失败:', error);
+                        showToast('删除需求失败，请重试');
+                    } else {
+                        showToast(`需求 #${id} 已删除`);
+                        // 重新加载数据
+                        await loadRequirements();
+                    }
+                } catch (error) {
+                    console.error('删除需求异常:', error);
+                    showToast('删除需求异常，请重试');
+                }
             }
-        }
-
-        // 刷新表格
-        function refreshTable() {
-            renderTable();
-            showToast('表格已刷新');
         }
 
         // 显示提示信息
