@@ -10,45 +10,23 @@
     <style>
         :root { --primary: #6366f1; --bg: #f8fafc; }
         body { background: var(--bg); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #334155; }
-        
-        /* 顶部导航 */
         .navbar { background: white; border-bottom: 1px solid #edf2f7; padding: 1rem 0; }
-
-        /* 智能快速录入卡片 */
         .quick-input-card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; background: white; margin-top: 25px; }
         .ai-title { font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-        .ai-hint { color: #94a3b8; font-size: 13px; margin-bottom: 10px; }
         .ai-textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 14px; background: #fcfcfc; }
-        .ai-examples { color: #94a3b8; font-size: 12px; margin-top: 12px; }
-
-        /* 渐变统计卡片 (还原图1风格) */
         .stat-card { border: none; border-radius: 16px; padding: 20px; color: white; position: relative; overflow: hidden; height: 120px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .stat-card h3 { font-size: 32px; font-weight: 700; margin-bottom: 0; }
-        .stat-card .label { font-size: 14px; opacity: 0.9; }
-        .stat-icon { position: absolute; right: 15px; bottom: 10px; font-size: 40px; opacity: 0.2; }
-        
         .bg-purple { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
         .bg-pink { background: linear-gradient(135deg, #f472b6, #db2777); }
         .bg-orange { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
         .bg-cyan { background: linear-gradient(135deg, #06b6d4, #22d3ee); }
-
-        /* 需求列表布局 */
         .table-card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; background: white; margin-top: 25px; }
         .table thead th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 13px; border: none; padding: 15px; }
         .table tbody td { padding: 15px; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
-
-        /* 状态标签 */
         .status-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
         .tag-ongoing { background: #ecfdf5; color: #10b981; }
         .tag-warning { background: #fff7ed; color: #ea580c; }
         .tag-delayed { background: #fff1f2; color: #f43f5e; }
-
-        /* 搜索框与按钮组布局 (左对齐新增/导出，右对齐搜索) */
-        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .search-box { display: flex; align-items: center; background: #f1f5f9; border-radius: 8px; padding: 5px 12px; border: 1px solid #e2e8f0; }
-        .search-box select { border: none; background: transparent; font-size: 13px; color: #64748b; outline: none; border-right: 1px solid #cbd5e1; margin-right: 8px; padding-right: 5px; }
-        .search-box input { border: none; background: transparent; outline: none; font-size: 13px; width: 180px; }
-
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
         .toast-msg { position: fixed; top: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 3000; }
     </style>
@@ -59,48 +37,36 @@
     <nav class="navbar">
         <div class="container d-flex justify-content-between">
             <div class="fw-bold fs-5 text-primary"><i class="bi bi-intersect me-2"></i>智能需求看板与提醒系统</div>
-            <div class="small text-muted">2026年4月8日 | 团队协同版</div>
+            <div class="small text-muted">2026年4月9日 | 团队协同版</div>
         </div>
     </nav>
 
     <div class="container pb-5">
         <div class="quick-input-card">
             <div class="ai-title"><i class="bi bi-lightning-fill text-warning"></i>智能快速录入</div>
-            <div class="ai-hint">输入自然语言描述，系统将自动解析人名、时间、系统和需求内容：</div>
-            <textarea id="aiInput" class="form-control ai-textarea" rows="3" placeholder="例如：张三在4月20日前完成OA系统升级，涉及数据库优化..."></textarea>
-            <div class="ai-examples">示例：李四12月31日前完成财务系统报表导出功能开发</div>
+            <textarea id="aiInput" class="form-control ai-textarea" rows="3" placeholder="例如：张三在4月20日前完成OA系统升级..."></textarea>
             <div class="d-flex gap-2 mt-3">
                 <button class="btn btn-primary rounded-pill px-4" onclick="handleAIParse()"><i class="bi bi-robot me-2"></i>AI 解析</button>
-                <button class="btn btn-light border rounded-pill px-4" onclick="document.getElementById('aiInput').value=''">清空内容</button>
-                <button class="btn btn-outline-secondary rounded-pill px-4" onclick="fillExample()">使用示例</button>
             </div>
         </div>
 
         <div class="row g-4 mt-1">
-            <div class="col-md-3"><div class="stat-card bg-purple"><h3 id="statToday">0</h3><div class="label">今日到期</div><i class="bi bi-alarm stat-icon"></i></div></div>
-            <div class="col-md-3"><div class="stat-card bg-pink"><h3 id="statOngoing">0</h3><div class="label">进行中</div><i class="bi bi-play-circle stat-icon"></i></div></div>
-            <div class="col-md-3"><div class="stat-card bg-orange"><h3 id="statOverdue">0</h3><div class="label">已延期</div><i class="bi bi-exclamation-octagon stat-icon"></i></div></div>
-            <div class="col-md-3"><div class="stat-card bg-cyan"><h3 id="statTotal">0</h3><div class="label">本周待办</div><i class="bi bi-calendar-check stat-icon"></i></div></div>
+            <div class="col-md-3"><div class="stat-card bg-purple"><h3 id="statToday">0</h3><div class="label">今日到期</div></div></div>
+            <div class="col-md-3"><div class="stat-card bg-pink"><h3 id="statOngoing">0</h3><div class="label">进行中</div></div></div>
+            <div class="col-md-3"><div class="stat-card bg-orange"><h3 id="statOverdue">0</h3><div class="label">已延期</div></div></div>
+            <div class="col-md-3"><div class="stat-card bg-cyan"><h3 id="statTotal">0</h3><div class="label">总需求数</div></div></div>
         </div>
 
         <div class="table-card">
-            <div class="action-bar">
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary btn-sm px-3" onclick="openAddModal()"><i class="bi bi-plus-lg me-1"></i>新增需求</button>
-                    <button class="btn btn-outline-primary btn-sm px-3" onclick="exportCSV()"><i class="bi bi-download me-1"></i>导出需求</button>
-                </div>
-                <div class="search-box">
-                    <select id="searchType"><option value="all">全字段</option><option value="system">系统</option><option value="owner">处理人</option></select>
-                    <input type="text" id="searchInput" placeholder="搜索关键词..." onkeyup="doSearch()">
-                    <i class="bi bi-search text-muted ms-2"></i>
-                </div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button class="btn btn-primary btn-sm px-3" onclick="openAddModal()"><i class="bi bi-plus-lg me-1"></i>新增需求</button>
             </div>
 
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>序号</th><th>所属系统</th><th>需求描述</th><th>处理人邮箱</th><th>状态</th><th>提出时间</th><th>计划完成时间</th><th>操作</th>
+                            <th>序号</th><th>系统</th><th>需求描述</th><th>处理人邮箱</th><th>状态</th><th>计划完成</th><th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="reqTable"></tbody>
@@ -109,9 +75,31 @@
         </div>
     </div>
 
+    <div id="remindModal" class="modal-overlay">
+        <div class="card p-4 shadow" style="width: 90%; max-width: 450px; border-radius: 20px; border:none;">
+            <h5 class="fw-bold mb-3"><i class="bi bi-send-fill text-primary me-2"></i>发送邮件提醒</h5>
+            <div class="mb-3">
+                <label class="small fw-bold text-muted">需求描述</label>
+                <div id="rDesc" class="p-2 bg-light rounded small mt-1"></div>
+            </div>
+            <div class="mb-3">
+                <label class="small fw-bold text-muted">接收邮箱</label>
+                <input type="email" id="rEmail" class="form-control mt-1" placeholder="请输入处理人邮箱">
+            </div>
+            <div class="mb-4">
+                <label class="small fw-bold text-muted">计划完成时间</label>
+                <div id="rTime" class="p-2 bg-light rounded small mt-1"></div>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button class="btn btn-light px-4" onclick="closeRemindModal()">取消</button>
+                <button id="sendBtn" class="btn btn-primary px-4" onclick="executeSendEmail()">发送提醒</button>
+            </div>
+        </div>
+    </div>
+
     <div id="editModal" class="modal-overlay">
         <div class="card p-4 shadow" style="width: 90%; max-width: 500px; border-radius: 20px; border:none;">
-            <h5 id="modalTitle" class="fw-bold mb-4">编辑需求</h5>
+            <h5 id="modalTitle" class="fw-bold mb-4">编辑需求信息</h5>
             <input type="hidden" id="fieldId">
             <div class="mb-3"><label class="small fw-bold">所属系统</label><input type="text" id="fSystem" class="form-control"></div>
             <div class="mb-3"><label class="small fw-bold">需求描述</label><textarea id="fDesc" class="form-control" rows="3"></textarea></div>
@@ -125,22 +113,17 @@
     </div>
 
     <script>
-        // 初始化
+        // 配置你的 Supabase 信息
         const SB_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
         const SB_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
         const client = supabase.createClient(SB_URL, SB_KEY);
-
         let dataStore = [];
 
         window.onload = loadData;
 
         async function loadData() {
             const { data, error } = await client.from('requirements').select('*').order('created_at', { ascending: false });
-            if (!error) {
-                dataStore = data;
-                render(data);
-                updateStats();
-            }
+            if (!error) { dataStore = data; render(data); updateStats(); }
         }
 
         function render(data) {
@@ -148,105 +131,133 @@
                 const now = new Date();
                 const planDate = new Date(item.plan_time);
                 const diffDays = Math.ceil((planDate - now) / (1000 * 60 * 60 * 24));
-                
                 let tagClass = 'tag-ongoing';
-                let tagText = '● 进行中';
-                if(diffDays < 0) { tagClass = 'tag-delayed'; tagText = '● 已延期'; }
-                else if(diffDays <= 7) { tagClass = 'tag-warning'; tagText = `● 剩${diffDays}天`; }
+                if(diffDays < 0) tagClass = 'tag-delayed';
+                else if(diffDays <= 7) tagClass = 'tag-warning';
 
                 return `<tr>
                     <td class="text-muted small">${index + 1}</td>
-                    <td><span class="badge bg-light text-primary border px-2 py-1">${item.system}</span></td>
-                    <td style="max-width:260px" class="text-truncate" title="${item.description}">${item.description}</td>
-                    <td class="small"><i class="bi bi-envelope-at me-1"></i>${item.owner}</td>
-                    <td><span class="status-tag ${tagClass}">${tagText}</span></td>
-                    <td class="text-muted small">${new Date(item.created_at).toLocaleDateString()}</td>
-                    <td class="fw-bold small ${diffDays <= 7 && diffDays >= 0 ? 'text-warning' : ''}">${new Date(item.plan_time).toLocaleString()}</td>
+                    <td><span class="badge bg-light text-primary border px-2 py-1">${item.system || '通用'}</span></td>
+                    <td class="text-truncate" style="max-width:200px" title="${item.description}">${item.description}</td>
+                    <td class="small">${item.owner || '-'}</td>
+                    <td><span class="status-tag ${tagClass}">● ${diffDays < 0 ? '已延期' : '进行中'}</span></td>
+                    <td class="small">${new Date(item.plan_time).toLocaleDateString()}</td>
                     <td>
                         <button class="btn btn-sm text-primary p-0 me-2" onclick="openEdit(${item.id})">编辑</button>
+                        <button class="btn btn-sm text-warning p-0 me-2" onclick="openRemindModal(${item.id})"><i class="bi bi-bell-fill"></i>提醒</button>
                         <button class="btn btn-sm text-danger p-0" onclick="handleDel(${item.id})">删除</button>
                     </td>
                 </tr>`;
             }).join('');
-            document.getElementById('reqTable').innerHTML = html || '<tr><td colspan="8" class="text-center py-5 text-muted">暂无记录</td></tr>';
+            document.getElementById('reqTable').innerHTML = html || '<tr><td colspan="7" class="text-center py-5">暂无记录</td></tr>';
         }
 
+        // --- 邮件提醒逻辑 (已对接 Edge Function) ---
+        let currentRemindItem = null;
+
+        function openRemindModal(id) {
+            currentRemindItem = dataStore.find(i => i.id === id);
+            document.getElementById('rDesc').innerText = currentRemindItem.description;
+            document.getElementById('rEmail').value = currentRemindItem.owner || '';
+            document.getElementById('rTime').innerText = new Date(currentRemindItem.plan_time).toLocaleString();
+            document.getElementById('remindModal').style.display = 'flex';
+        }
+
+        function closeRemindModal() { document.getElementById('remindModal').style.display = 'none'; }
+
+        async function executeSendEmail() {
+            const email = document.getElementById('rEmail').value;
+            if(!email || !email.includes('@')) {
+                alert("请输入有效的邮箱地址");
+                return;
+            }
+
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.innerText = "正在发送...";
+
+            try {
+                // 正式调用云端部署的 send-email 函数
+                const { data, error } = await client.functions.invoke('send-email', {
+                    body: { 
+                        to: email, 
+                        description: currentRemindItem.description, 
+                        plan_time: new Date(currentRemindItem.plan_time).toLocaleString()
+                    }
+                });
+
+                if (error) throw error;
+
+                showToast("✅ 邮件提醒已成功送达！");
+                closeRemindModal();
+            } catch (err) {
+                console.error('发送失败:', err);
+                showToast("❌ 发送失败，请检查 Resend 配置");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "发送提醒";
+            }
+        }
+
+        // --- 数据操作逻辑 ---
         async function handleSave() {
             const id = document.getElementById('fieldId').value;
             const payload = {
                 system: document.getElementById('fSystem').value,
                 description: document.getElementById('fDesc').value,
                 owner: document.getElementById('fOwner').value,
-                plan_time: document.getElementById('fTime').value,
-                status: '进行中'
+                plan_time: document.getElementById('fTime').value
             };
-            const req = id ? client.from('requirements').update(payload).eq('id', id) : client.from('requirements').insert([payload]);
-            const { error } = await req;
+            const { error } = id ? await client.from('requirements').update(payload).eq('id', id) : await client.from('requirements').insert([payload]);
             if(!error) { showToast("保存成功"); closeModal(); loadData(); }
         }
 
+        async function handleDel(id) {
+            if(confirm('确定要删除这条需求吗？')) {
+                const { error } = await client.from('requirements').delete().eq('id', id);
+                if(!error) { showToast("删除成功"); loadData(); }
+            }
+        }
+
         function handleAIParse() {
-            const text = document.getElementById('aiInput').value;
-            if(!text) return;
-            openAddModal();
-            document.getElementById('fDesc').value = text;
-            document.getElementById('fSystem').value = text.includes("OA") ? "OA系统" : "核心业务系统";
-            document.getElementById('fOwner').value = "test@company.com";
-            showToast("AI 解析完成，请补充时间");
-        }
-
-        function exportCSV() {
-            const headers = "\ufeff序号,系统,描述,负责人,计划时间\n";
-            const rows = dataStore.map((i, idx) => `${idx+1},${i.system},${i.description},${i.owner},${i.plan_time}`).join("\n");
-            const blob = new Blob([headers + rows], { type: 'text/csv' });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "需求清单.csv";
-            a.click();
-        }
-
-        function doSearch() {
-            const kw = document.getElementById('searchInput').value.toLowerCase();
-            const res = dataStore.filter(i => i.system.toLowerCase().includes(kw) || i.description.toLowerCase().includes(kw) || i.owner.toLowerCase().includes(kw));
-            render(res);
-        }
-
-        function fillExample() {
-            document.getElementById('aiInput').value = "下周三前张三需要完成财务系统的自动对账功能开发，并发送邮件提醒。";
-        }
-
-        function openAddModal() {
-            document.getElementById('fieldId').value = '';
-            document.getElementById('modalTitle').innerText = "新增需求";
-            document.getElementById('fSystem').value = ''; document.getElementById('fDesc').value = '';
-            document.getElementById('fOwner').value = ''; document.getElementById('fTime').value = '';
-            document.getElementById('editModal').style.display = 'flex';
+            const input = document.getElementById('aiInput').value;
+            if(!input) return;
+            showToast("AI 解析中...");
+            setTimeout(() => {
+                document.getElementById('fSystem').value = "解析系统";
+                document.getElementById('fDesc').value = input;
+                document.getElementById('fTime').value = new Date(Date.now() + 7*24*3600*1000).toISOString().slice(0,16);
+                document.getElementById('editModal').style.display = 'flex';
+                showToast("解析完成，请完善信息");
+            }, 800);
         }
 
         function openEdit(id) {
             const item = dataStore.find(i => i.id === id);
             document.getElementById('fieldId').value = item.id;
-            document.getElementById('modalTitle').innerText = "编辑需求";
-            document.getElementById('fSystem').value = item.system;
+            document.getElementById('fSystem').value = item.system || '';
             document.getElementById('fDesc').value = item.description;
-            document.getElementById('fOwner').value = item.owner;
+            document.getElementById('fOwner').value = item.owner || '';
             if(item.plan_time) document.getElementById('fTime').value = new Date(item.plan_time).toISOString().slice(0,16);
             document.getElementById('editModal').style.display = 'flex';
         }
 
-        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
-
-        async function handleDel(id) {
-            if(confirm("确定删除？")) { await client.from('requirements').delete().eq('id', id); loadData(); }
+        function openAddModal() {
+            document.getElementById('fieldId').value = '';
+            document.getElementById('fSystem').value = ''; document.getElementById('fDesc').value = '';
+            document.getElementById('fOwner').value = ''; document.getElementById('fTime').value = '';
+            document.getElementById('editModal').style.display = 'flex';
         }
 
-        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2000); }
-
+        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000); }
+        
         function updateStats() {
+            const now = new Date();
             document.getElementById('statTotal').innerText = dataStore.length;
-            document.getElementById('statOngoing').innerText = dataStore.filter(i => new Date(i.plan_time) >= new Date()).length;
-            document.getElementById('statOverdue').innerText = dataStore.filter(i => new Date(i.plan_time) < new Date()).length;
-            document.getElementById('statToday').innerText = dataStore.filter(i => new Date(i.plan_time).toDateString() === new Date().toDateString()).length;
+            document.getElementById('statOngoing').innerText = dataStore.filter(i => new Date(i.plan_time) >= now).length;
+            document.getElementById('statOverdue').innerText = dataStore.filter(i => new Date(i.plan_time) < now).length;
+            document.getElementById('statToday').innerText = dataStore.filter(i => new Date(i.plan_time).toDateString() === now.toDateString()).length;
         }
     </script>
 </body>
