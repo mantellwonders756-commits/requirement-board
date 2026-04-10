@@ -12,7 +12,7 @@
         body { background: var(--bg); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #334155; }
         .navbar { background: white; border-bottom: 1px solid #edf2f7; padding: 1rem 0; }
         .quick-input-card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; background: white; margin-top: 25px; }
-        .ai-title { font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .ai-title { font-weight: 700; color: #1e293b; display: center; align-items: center; gap: 8px; margin-bottom: 12px; }
         .ai-textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 14px; background: #fcfcfc; }
         .stat-card { border: none; border-radius: 16px; padding: 20px; color: white; position: relative; overflow: hidden; height: 120px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .stat-card h3 { font-size: 32px; font-weight: 700; margin-bottom: 0; }
@@ -113,7 +113,6 @@
     </div>
 
     <script>
-        // 配置你的 Supabase 信息
         const SB_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
         const SB_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
         const client = supabase.createClient(SB_URL, SB_KEY);
@@ -152,7 +151,6 @@
             document.getElementById('reqTable').innerHTML = html || '<tr><td colspan="7" class="text-center py-5">暂无记录</td></tr>';
         }
 
-        // --- 邮件提醒逻辑 (已对接 Edge Function) ---
         let currentRemindItem = null;
 
         function openRemindModal(id) {
@@ -165,6 +163,7 @@
 
         function closeRemindModal() { document.getElementById('remindModal').style.display = 'none'; }
 
+        // --- 重点修正：executeSendEmail 函数 ---
         async function executeSendEmail() {
             const email = document.getElementById('rEmail').value;
             if(!email || !email.includes('@')) {
@@ -177,12 +176,15 @@
             btn.innerText = "正在发送...";
 
             try {
-                // 正式调用云端部署的 send-email 函数
+                // 调用 Edge Function 并显式携带 Authorization 头
                 const { data, error } = await client.functions.invoke('send-email', {
                     body: { 
                         to: email, 
                         description: currentRemindItem.description, 
                         plan_time: new Date(currentRemindItem.plan_time).toLocaleString()
+                    },
+                    headers: {
+                        "Authorization": `Bearer ${SB_KEY}`
                     }
                 });
 
@@ -191,15 +193,14 @@
                 showToast("✅ 邮件提醒已成功送达！");
                 closeRemindModal();
             } catch (err) {
-                console.error('发送失败:', err);
-                showToast("❌ 发送失败，请检查 Resend 配置");
+                console.error('发送失败详情:', err);
+                showToast("❌ 发送失败，请检查浏览器控制台");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "发送提醒";
             }
         }
 
-        // --- 数据操作逻辑 ---
         async function handleSave() {
             const id = document.getElementById('fieldId').value;
             const payload = {
