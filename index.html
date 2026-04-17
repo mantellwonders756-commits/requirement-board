@@ -135,8 +135,17 @@
             <div class="mb-3"><label class="small fw-bold">所属系统</label><input type="text" id="fSystem" class="form-control"></div>
             <div class="mb-3"><label class="small fw-bold">需求描述</label><textarea id="fDesc" class="form-control" rows="3"></textarea></div>
             <div class="mb-3"><label class="small fw-bold">处理人邮箱</label><input type="email" id="fOwner" class="form-control"></div>
-            <div class="mb-4"><label class="small fw-bold">计划完成时间</label><input type="datetime-local" id="fTime" class="form-control"></div>
-            <div class="d-flex gap-2 justify-content-end">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="small fw-bold">提出时间</label>
+                    <input type="date" id="fCreateTime" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="small fw-bold">计划完成时间</label>
+                    <input type="date" id="fTime" class="form-control">
+                </div>
+            </div>
+            <div class="d-flex gap-2 justify-content-end mt-3">
                 <button class="btn btn-light px-4" onclick="closeModal()">取消</button>
                 <button class="btn btn-primary px-4" onclick="handleSave()">确认保存</button>
             </div>
@@ -178,6 +187,13 @@
             }
         }
 
+        // 格式化日期辅助函数 YYYY-MM-DD
+        function formatDate(dateStr) {
+            if(!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
         function setFilter(status) {
             currentStatusFilter = status;
             document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
@@ -188,11 +204,13 @@
         function applyAllFilters() {
             const searchKeyword = document.getElementById('filterInput').value.toLowerCase();
             const now = new Date();
+            now.setHours(0,0,0,0); // 仅比较日期
 
             const filtered = dataStore.filter(item => {
                 const planDate = new Date(item.plan_time);
+                planDate.setHours(0,0,0,0);
                 const isOverdue = planDate < now;
-                const isToday = planDate.toDateString() === now.toDateString();
+                const isToday = planDate.getTime() === now.getTime();
                 
                 let passStatus = true;
                 if (currentStatusFilter === 'today') passStatus = isToday;
@@ -205,7 +223,7 @@
                     item.description, 
                     item.owner, 
                     statusText, 
-                    new Date(item.plan_time).toLocaleDateString()
+                    formatDate(item.plan_time)
                 ].some(val => String(val).toLowerCase().includes(searchKeyword));
 
                 return passStatus && passSearch;
@@ -217,7 +235,9 @@
         function render(data) {
             const html = data.map((item, index) => {
                 const now = new Date();
+                now.setHours(0,0,0,0);
                 const planDate = new Date(item.plan_time);
+                planDate.setHours(0,0,0,0);
                 const isOverdue = planDate < now;
                 const tagClass = isOverdue ? 'tag-delayed' : 'tag-ongoing';
 
@@ -227,8 +247,8 @@
                     <td class="text-truncate" style="max-width:180px" title="${item.description}">${item.description}</td>
                     <td class="small">${item.owner || '-'}</td>
                     <td><span class="status-tag ${tagClass}">● ${isOverdue ? '已延期' : '进行中'}</span></td>
-                    <td class="text-muted small">${new Date(item.created_at).toLocaleDateString()}</td>
-                    <td class="small fw-bold">${new Date(item.plan_time).toLocaleString()}</td>
+                    <td class="text-muted small">${formatDate(item.created_at)}</td>
+                    <td class="small fw-bold">${formatDate(item.plan_time)}</td>
                     <td>
                         <button class="btn btn-sm text-primary p-0 me-2" onclick="openEdit(${item.id})">编辑</button>
                         <button class="btn btn-sm btn-remind p-0 me-2" onclick="openRemind(${item.id})">提醒</button>
@@ -239,7 +259,6 @@
             document.getElementById('reqTable').innerHTML = html || '<tr><td colspan="8" class="text-center py-5">暂无符合条件的需求</td></tr>';
         }
 
-        // 邮件提醒逻辑
         function openRemind(id) {
             const item = dataStore.find(i => i.id === id);
             if(!item.owner || !item.owner.includes('@')) {
@@ -247,29 +266,27 @@
                 return;
             }
             document.getElementById('remindTo').innerText = item.owner;
-            document.getElementById('remindContent').innerText = `【需求提醒】您有一个负责的需求待处理：${item.description}。计划截止时间为：${new Date(item.plan_time).toLocaleString()}，请关注。`;
+            document.getElementById('remindContent').innerText = `【需求提醒】您有一个负责的需求待处理：${item.description}。计划截止日期为：${formatDate(item.plan_time)}，请关注。`;
             document.getElementById('remindModal').style.display = 'flex';
         }
 
         function closeRemindModal() { document.getElementById('remindModal').style.display = 'none'; }
 
         function confirmSendEmail() {
-            // 此处通常对接后端 API 或 SendGrid 等服务
-            showToast("正在通过系统向 " + document.getElementById('remindTo').innerText + " 发送提醒...");
+            showToast("正在发送提醒至 " + document.getElementById('remindTo').innerText + "...");
             setTimeout(() => {
                 showToast("邮件已成功发送！");
                 closeRemindModal();
             }, 1500);
         }
 
-        // 导出 Excel
         function exportToExcel() {
             const worksheet = XLSX.utils.json_to_sheet(dataStore.map(i => ({
                 "所属系统": i.system,
                 "需求描述": i.description,
                 "处理人邮箱": i.owner,
-                "提出时间": new Date(i.created_at).toLocaleString(),
-                "计划完成时间": new Date(i.plan_time).toLocaleString()
+                "提出时间": formatDate(i.created_at),
+                "计划完成时间": formatDate(i.plan_time)
             })));
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "需求看板");
@@ -277,13 +294,13 @@
             showToast("Excel 文件已生成并下载");
         }
 
-        // 基础 CRUD 操作
         async function handleSave() {
             const id = document.getElementById('fieldId').value;
             const payload = {
                 system: document.getElementById('fSystem').value,
                 description: document.getElementById('fDesc').value,
                 owner: document.getElementById('fOwner').value,
+                created_at: document.getElementById('fCreateTime').value, // 支持修改提出时间
                 plan_time: document.getElementById('fTime').value
             };
             const { error } = id ? await client.from('requirements').update(payload).eq('id', id) : await client.from('requirements').insert([payload]);
@@ -299,10 +316,20 @@
 
         function updateStats() {
             const now = new Date();
+            now.setHours(0,0,0,0);
             document.getElementById('statTotal').innerText = dataStore.length;
-            document.getElementById('statOngoing').innerText = dataStore.filter(i => new Date(i.plan_time) >= now).length;
-            document.getElementById('statOverdue').innerText = dataStore.filter(i => new Date(i.plan_time) < now).length;
-            document.getElementById('statToday').innerText = dataStore.filter(i => new Date(i.plan_time).toDateString() === now.toDateString()).length;
+            document.getElementById('statOngoing').innerText = dataStore.filter(i => {
+                const d = new Date(i.plan_time); d.setHours(0,0,0,0);
+                return d >= now;
+            }).length;
+            document.getElementById('statOverdue').innerText = dataStore.filter(i => {
+                const d = new Date(i.plan_time); d.setHours(0,0,0,0);
+                return d < now;
+            }).length;
+            document.getElementById('statToday').innerText = dataStore.filter(i => {
+                const d = new Date(i.plan_time);
+                return d.toDateString() === now.toDateString();
+            }).length;
         }
 
         function openEdit(id) {
@@ -311,14 +338,20 @@
             document.getElementById('fSystem').value = item.system || '';
             document.getElementById('fDesc').value = item.description;
             document.getElementById('fOwner').value = item.owner || '';
-            if(item.plan_time) document.getElementById('fTime').value = new Date(item.plan_time).toISOString().slice(0,16);
+            document.getElementById('fCreateTime').value = formatDate(item.created_at);
+            document.getElementById('fTime').value = formatDate(item.plan_time);
             document.getElementById('editModal').style.display = 'flex';
         }
 
         function openAddModal() {
             document.getElementById('fieldId').value = '';
-            document.getElementById('fSystem').value = ''; document.getElementById('fDesc').value = '';
-            document.getElementById('fOwner').value = ''; document.getElementById('fTime').value = '';
+            document.getElementById('fSystem').value = ''; 
+            document.getElementById('fDesc').value = '';
+            document.getElementById('fOwner').value = ''; 
+            // 默认设置为当天日期
+            const today = formatDate(new Date());
+            document.getElementById('fCreateTime').value = today;
+            document.getElementById('fTime').value = '';
             document.getElementById('editModal').style.display = 'flex';
         }
 
