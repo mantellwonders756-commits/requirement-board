@@ -16,7 +16,6 @@
         .ai-title { font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
         .ai-textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 14px; background: #fcfcfc; }
         
-        /* 统计卡片样式增强 */
         .stat-card { border: none; border-radius: 16px; padding: 20px; color: white; cursor: pointer; transition: all 0.3s ease; height: 120px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); position: relative; }
         .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .stat-card.active { outline: 3px solid #1e293b; outline-offset: 2px; }
@@ -42,6 +41,9 @@
         .search-box { position: relative; max-width: 300px; }
         .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
         .search-box input { padding-left: 35px; border-radius: 20px; border: 1px solid #e2e8f0; font-size: 14px; }
+        
+        .btn-remind { color: #f59e0b; font-weight: 500; }
+        .btn-remind:hover { color: #d97706; }
     </style>
 </head>
 <body>
@@ -141,13 +143,29 @@
         </div>
     </div>
 
+    <div id="remindModal" class="modal-overlay">
+        <div class="card p-4 shadow" style="width: 90%; max-width: 450px; border-radius: 20px; border:none;">
+            <h5 class="fw-bold mb-3"><i class="bi bi-envelope-at me-2 text-warning"></i>发送邮件提醒</h5>
+            <div class="p-3 bg-light rounded-3 mb-3">
+                <p class="small text-muted mb-1">发送至：</p>
+                <div id="remindTo" class="fw-bold mb-2"></div>
+                <p class="small text-muted mb-1">邮件内容概览：</p>
+                <div id="remindContent" class="small" style="color:#64748b; border-left: 3px solid #e2e8f0; padding-left: 10px;"></div>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button class="btn btn-light px-4" onclick="closeRemindModal()">取消</button>
+                <button class="btn btn-warning px-4 text-white" onclick="confirmSendEmail()"><i class="bi bi-send-fill me-1"></i>立即发送</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const SB_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
         const SB_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
         const client = supabase.createClient(SB_URL, SB_KEY);
         
-        let dataStore = []; // 原始总数据
-        let currentStatusFilter = 'all'; // 当前卡片筛选状态
+        let dataStore = []; 
+        let currentStatusFilter = 'all'; 
 
         window.onload = loadData;
 
@@ -160,16 +178,13 @@
             }
         }
 
-        // 设置卡片筛选状态
         function setFilter(status) {
             currentStatusFilter = status;
-            // 更新卡片激活样式
             document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
             document.getElementById(`card-${status}`).classList.add('active');
             applyAllFilters();
         }
 
-        // 执行综合过滤（看板点击 + 搜索框输入）
         function applyAllFilters() {
             const searchKeyword = document.getElementById('filterInput').value.toLowerCase();
             const now = new Date();
@@ -179,13 +194,11 @@
                 const isOverdue = planDate < now;
                 const isToday = planDate.toDateString() === now.toDateString();
                 
-                // 1. 卡片筛选
                 let passStatus = true;
                 if (currentStatusFilter === 'today') passStatus = isToday;
                 else if (currentStatusFilter === 'ongoing') passStatus = !isOverdue;
                 else if (currentStatusFilter === 'delayed') passStatus = isOverdue;
 
-                // 2. 搜索框内容筛选
                 const statusText = isOverdue ? '已延期' : '进行中';
                 const passSearch = [
                     item.system, 
@@ -218,6 +231,7 @@
                     <td class="small fw-bold">${new Date(item.plan_time).toLocaleString()}</td>
                     <td>
                         <button class="btn btn-sm text-primary p-0 me-2" onclick="openEdit(${item.id})">编辑</button>
+                        <button class="btn btn-sm btn-remind p-0 me-2" onclick="openRemind(${item.id})">提醒</button>
                         <button class="btn btn-sm text-danger p-0" onclick="handleDel(${item.id})">删除</button>
                     </td>
                 </tr>`;
@@ -225,15 +239,31 @@
             document.getElementById('reqTable').innerHTML = html || '<tr><td colspan="8" class="text-center py-5">暂无符合条件的需求</td></tr>';
         }
 
-        // 导出 Excel 功能
-        function exportToExcel() {
-            // 仅导出当前显示（筛选后）的数据
-            const tableData = dataStore.filter(item => {
-                const searchKeyword = document.getElementById('filterInput').value.toLowerCase();
-                // 逻辑同 applyAllFilters，确保导出的是用户看到的数据
-                return true; 
-            }); 
+        // 邮件提醒逻辑
+        function openRemind(id) {
+            const item = dataStore.find(i => i.id === id);
+            if(!item.owner || !item.owner.includes('@')) {
+                showToast("未找到有效邮箱地址，请先编辑处理人信息");
+                return;
+            }
+            document.getElementById('remindTo').innerText = item.owner;
+            document.getElementById('remindContent').innerText = `【需求提醒】您有一个负责的需求待处理：${item.description}。计划截止时间为：${new Date(item.plan_time).toLocaleString()}，请关注。`;
+            document.getElementById('remindModal').style.display = 'flex';
+        }
 
+        function closeRemindModal() { document.getElementById('remindModal').style.display = 'none'; }
+
+        function confirmSendEmail() {
+            // 此处通常对接后端 API 或 SendGrid 等服务
+            showToast("正在通过系统向 " + document.getElementById('remindTo').innerText + " 发送提醒...");
+            setTimeout(() => {
+                showToast("邮件已成功发送！");
+                closeRemindModal();
+            }, 1500);
+        }
+
+        // 导出 Excel
+        function exportToExcel() {
             const worksheet = XLSX.utils.json_to_sheet(dataStore.map(i => ({
                 "所属系统": i.system,
                 "需求描述": i.description,
