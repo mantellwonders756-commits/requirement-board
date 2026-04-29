@@ -3,102 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>需求看板 Pro - 完整功能还原最终版</title>
+    <title>智能需求看板与自动化周报系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        /* 核心样式还原 */
-        :root { --primary: #4f46e5; --bg: #f8fafc; }
-        body { background: var(--bg); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #1e293b; }
+        :root { --primary: #6366f1; --bg: #f8fafc; }
+        body { background: var(--bg); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #334155; }
+        .navbar { background: white; border-bottom: 1px solid #edf2f7; padding: 0.8rem 0; position: sticky; top: 0; z-index: 1000; }
         
-        .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 16px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
-        .nav-link { color: #64748b; font-weight: 500; cursor: pointer; padding: 10px 24px; border-radius: 10px; transition: all 0.3s; margin-left: 8px; }
-        .nav-link.active { background: #6366f1; color: white !important; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25); }
+        /* 导航样式 */
+        .nav-tabs { border: none; }
+        .nav-tabs .nav-link { border: none; color: #64748b; font-weight: 500; padding: 8px 20px; border-radius: 8px; transition: 0.3s; }
+        .nav-tabs .nav-link.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2); }
 
-        /* 纯色大色块统计区还原自 image_b3271e.png */
-        .stat-card { border: none; border-radius: 16px; padding: 28px; color: white; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; height: 140px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
-        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); }
-        .stat-card i { position: absolute; right: 20px; bottom: 20px; font-size: 40px; opacity: 0.15; }
+        .card-custom { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; background: white; margin-bottom: 20px; }
         
-        .bg-total { background-color: #3b5998; }   /* 深蓝色 */
-        .bg-doing { background-color: #f59e0b; }   /* 暖黄色 */
-        .bg-delay { background-color: #dc2626; }   /* 砖红色 */
-        .bg-week { background-color: #0d9488; }    /* 深青色 */
-
-        .card-custom { border: none; border-radius: 18px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); padding: 25px; background: white; margin-bottom: 24px; }
+        /* 统计卡片 - 严格匹配图片色号 */
+        .stat-card { border: none; border-radius: 16px; padding: 20px; color: white; cursor: pointer; transition: all 0.3s ease; height: 120px; box-shadow: 0 8px 15px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 20px rgba(0,0,0,0.12); }
         
-        /* 列表字段与状态样式 */
-        .table thead th { background: #f1f5f9; color: #475569; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.025em; border: none; }
-        .status-tag { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; display: inline-block; }
-        .tag-doing { background: #fef3c7; color: #92400e; }
-        .tag-done { background: #d1fae5; color: #065f46; }
-        .tag-delay { background: #fee2e2; color: #991b1b; }
+        .bg-total { background: linear-gradient(135deg, #6366f1, #8b5cf6); }   /* 紫色 */
+        .bg-ongoing { background: linear-gradient(135deg, #a855f7, #ec4899); } /* 粉红 */
+        .bg-delayed { background: linear-gradient(135deg, #8b5cf6, #d946ef); } /* 玫红 */
+        .bg-weekly { background: linear-gradient(135deg, #3b82f6, #2dd4bf); }  /* 天蓝 */
 
-        /* AI 输入区细节 */
-        #aiInput { border: 2px solid #f1f5f9; border-radius: 14px; padding: 18px; width: 100%; min-height: 110px; outline: none; transition: 0.3s; background: #f8fafc; font-size: 14px; }
-        #aiInput:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        .status-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .tag-done { background: #ecfdf5; color: #059669; }
+        .tag-doing { background: #eff6ff; color: #2563eb; }
+        .tag-delay { background: #fff1f2; color: #e11d48; }
 
-        /* 周报内容预览还原自 image_b31c1c.png */
-        #reportArea { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 40px; white-space: pre-wrap; font-size: 15px; line-height: 2; color: #334155; min-height: 600px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
+        .toast-msg { position: fixed; top: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 3000; box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
         
-        /* 弹窗样式 */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
-        .cursor-pointer { cursor: pointer; }
+        /* AI 解析区 */
+        .ai-input-area { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 25px; }
+        #aiInput { border: none; resize: none; width: 100%; font-size: 14px; outline: none; min-height: 80px; }
+
+        #weeklyReportPreview { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; white-space: pre-wrap; font-size: 14px; line-height: 1.8; color: #1e293b; max-height: 600px; overflow-y: auto; }
+        
+        /* 分页样式 */
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9; }
     </style>
 </head>
 <body>
-    <nav class="navbar mb-4">
+    <div id="toast" class="toast-msg"></div>
+
+    <nav class="navbar">
         <div class="container d-flex justify-content-between align-items-center">
-            <div class="fw-bold fs-4 text-primary d-flex align-items-center"><i class="bi bi-rocket-takeoff-fill me-2"></i>需求看板 Pro</div>
-            <div class="d-flex">
-                <div class="nav-link active" id="tab-k" onclick="switchTab('k')">需求看板</div>
-                <div class="nav-link" id="tab-r" onclick="switchTab('r')">项目周报</div>
-            </div>
+            <div class="fw-bold fs-5 text-primary"><i class="bi bi-rocket-takeoff-fill me-2"></i>需求看板 Pro</div>
+            <ul class="nav nav-tabs" id="mainTabs">
+                <li class="nav-item"><a class="nav-link active" id="tab-kanban" href="javascript:void(0)" onclick="switchTab('kanban')">需求看板</a></li>
+                <li class="nav-item"><a class="nav-link" id="tab-report" href="javascript:void(0)" onclick="switchTab('report')">项目周报</a></li>
+            </ul>
         </div>
     </nav>
 
-    <div class="container">
-        <div id="view-k">
-            <div class="card-custom mb-4">
+    <div class="container py-4">
+        <div id="kanbanView">
+            <div class="card-custom">
                 <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-lightning-charge-fill text-warning fs-4 me-2"></i>
+                    <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
                     <h6 class="fw-bold m-0">智能快速录入</h6>
                 </div>
-                <textarea id="aiInput" placeholder="输入自然语言描述，系统将自动解析。例如：资产系统下周五前由张三完成导出功能功能。"></textarea>
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <span class="small text-muted">支持格式：[系统名] + [日期] + [负责人] + [需求描述]</span>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-secondary btn-sm px-4 rounded-pill" onclick="document.getElementById('aiInput').value=''">清空</button>
-                        <button class="btn btn-primary btn-sm px-4 rounded-pill" id="aiBtn" onclick="handleAIParse()">AI 智能解析</button>
+                <div class="ai-input-area">
+                    <textarea id="aiInput" placeholder="例如：下周五前张三需要完成财务报表系统更新，需要与财务部门协调..."></textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                        <div class="small text-muted">支持格式：负责人 + 时间 + 事项</div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary px-3 rounded-pill" onclick="document.getElementById('aiInput').value=''">清空</button>
+                            <button class="btn btn-sm btn-primary px-4 rounded-pill" id="aiBtn" onclick="handleAIParse()"><i class="bi bi-robot me-1"></i>AI 解析</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row g-4 mb-4">
+            <div class="row g-3 mb-4">
                 <div class="col-md-3" onclick="setFilter('all')">
                     <div class="stat-card bg-total">
-                        <h2 class="fw-bold m-0" id="s-total">0</h2>
-                        <div class="d-flex justify-content-between"><span>全部需求</span><i class="bi bi-list-task"></i></div>
+                        <h2 class="fw-bold m-0" id="statTotal">0</h2>
+                        <div class="small opacity-75"><i class="bi bi-list-ul me-1"></i>总需求</div>
                     </div>
                 </div>
-                <div class="col-md-3" onclick="setFilter('doing')">
-                    <div class="stat-card bg-doing">
-                        <h2 class="fw-bold m-0" id="s-doing">0</h2>
-                        <div class="d-flex justify-content-between"><span>进行中</span><i class="bi bi-gear-wide-connected"></i></div>
+                <div class="col-md-3" onclick="setFilter('ongoing')">
+                    <div class="stat-card bg-ongoing">
+                        <h2 class="fw-bold m-0" id="statDoing">0</h2>
+                        <div class="small opacity-75"><i class="bi bi-arrow-repeat me-1"></i>进行中</div>
                     </div>
                 </div>
-                <div class="col-md-3" onclick="setFilter('delay')">
-                    <div class="stat-card bg-delay">
-                        <h2 class="fw-bold m-0" id="s-delay">0</h2>
-                        <div class="d-flex justify-content-between"><span>已延期</span><i class="bi bi-exclamation-triangle"></i></div>
+                <div class="col-md-3" onclick="setFilter('delayed')">
+                    <div class="stat-card bg-delayed">
+                        <h2 class="fw-bold m-0" id="statDelay">0</h2>
+                        <div class="small opacity-75"><i class="bi bi-exclamation-triangle me-1"></i>已延期</div>
                     </div>
                 </div>
-                <div class="col-md-3" onclick="setFilter('week')">
-                    <div class="stat-card bg-week">
-                        <h2 class="fw-bold m-0" id="s-week">0</h2>
-                        <div class="d-flex justify-content-between"><span>本周待办</span><i class="bi bi-calendar-check"></i></div>
+                <div class="col-md-3" onclick="setFilter('today')">
+                    <div class="stat-card bg-weekly">
+                        <h2 class="fw-bold m-0" id="statToday">0</h2>
+                        <div class="small opacity-75"><i class="bi bi-calendar-check me-1"></i>本周待办</div>
                     </div>
                 </div>
             </div>
@@ -106,286 +109,292 @@
             <div class="card-custom">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary btn-sm px-3 rounded-pill" onclick="openModal()"><i class="bi bi-plus-lg"></i> 新增需求</button>
-                        <button class="btn btn-outline-success btn-sm px-3 rounded-pill" onclick="exportData()"><i class="bi bi-file-earmark-excel"></i> 导出表格</button>
+                        <button class="btn btn-primary btn-sm px-3 rounded-pill" onclick="openAddModal()"><i class="bi bi-plus-lg me-1"></i>新增需求</button>
+                        <button class="btn btn-outline-success btn-sm px-3 rounded-pill" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-1"></i>导出</button>
                     </div>
-                    <div class="input-group input-group-sm w-25">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="text" id="searchInp" class="form-control border-start-0 ps-0" placeholder="搜索系统、负责人..." oninput="refreshUI()">
+                    <div class="position-relative w-25">
+                        <i class="bi bi-search position-absolute" style="left:12px; top:7px; color:#94a3b8;"></i>
+                        <input type="text" id="filterInput" class="form-control form-control-sm ps-5 rounded-pill" placeholder="搜索系统、负责人..." oninput="currentPage=1;applyAllFilters()">
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead>
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
                             <tr>
-                                <th width="50">#</th>
-                                <th width="110">提出时间</th> <th width="120">系统</th>
-                                <th>需求描述</th>
-                                <th width="100">负责人</th>
-                                <th width="100">状态</th>
-                                <th width="150">计划完成时间</th> <th width="100">操作</th>
+                                <th width="60">序号</th><th width="120">系统</th><th>需求描述</th><th width="150">负责人</th><th width="100">状态</th><th width="120">计划时间</th><th width="120">操作</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody"></tbody>
+                        <tbody id="reqTable"></tbody>
                     </table>
+                </div>
+                
+                <div class="pagination-container">
+                    <div class="small text-muted">
+                        共 <span id="totalCount" class="fw-bold text-primary">0</span> 条记录，当前第 <span id="pageInfo">1/1</span> 页
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <select id="pageSize" class="form-select form-select-sm" style="width: 100px;" onchange="currentPage=1;applyAllFilters()">
+                            <option value="10">10条/页</option>
+                            <option value="20">20条/页</option>
+                            <option value="50">50条/页</option>
+                        </select>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" onclick="changePage(-1)"><i class="bi bi-chevron-left"></i></button>
+                            <button class="btn btn-outline-secondary" onclick="changePage(1)"><i class="bi bi-chevron-right"></i></button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="view-r" style="display: none;">
+        <div id="reportView" style="display: none;">
             <div class="row">
                 <div class="col-md-8">
                     <div class="card-custom">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h6 class="fw-bold m-0 text-secondary">本周进度报告预览</h6>
-                            <button class="btn btn-primary btn-sm px-4 rounded-pill" onclick="copyReport()">一键复制文字</button>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold m-0 text-secondary">周报预览</h6>
+                            <button class="btn btn-primary btn-sm rounded-pill px-3" onclick="copyReport()"><i class="bi bi-clipboard me-1"></i>复制全文</button>
                         </div>
-                        <div id="reportArea">数据加载中...</div>
+                        <div id="weeklyReportPreview">正在加载...</div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card-custom">
-                        <h6 class="fw-bold mb-4">报告周期设置</h6>
-                        <div class="mb-3">
-                            <label class="small fw-bold mb-2">开始日期</label>
-                            <input type="date" id="date-s" class="form-control rounded-3">
+                        <h6 class="fw-bold mb-3">报告配置</h6>
+                        <div class="mb-3"><label class="small text-muted">统计周期</label>
+                            <div class="d-flex gap-2 mt-1">
+                                <input type="date" id="reportStart" class="form-control form-control-sm">
+                                <input type="date" id="reportEnd" class="form-control form-control-sm">
+                            </div>
                         </div>
-                        <div class="mb-4">
-                            <label class="small fw-bold mb-2">结束日期</label>
-                            <input type="date" id="date-e" class="form-control rounded-3">
-                        </div>
-                        <button class="btn btn-primary w-100 py-2 rounded-pill" onclick="generateReport()">重新生成刷新周报</button>
+                        <div class="mb-3"><label class="small text-muted">报告标题</label><input type="text" id="reportTitle" class="form-control form-control-sm mt-1" value="项目周报"></div>
+                        <button class="btn btn-soft-primary btn-sm w-100 border" onclick="generateReport()">生成预览</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="modal" class="modal-overlay">
-        <div class="card p-4 shadow-lg border-0" style="width: 550px; border-radius: 24px;">
-            <h5 class="fw-bold mb-4" id="modalTitle">编辑需求详情</h5>
-            <input type="hidden" id="f-id">
-            <div class="mb-3">
-                <label class="small fw-bold text-muted mb-1">提出时间 (Created At)</label>
-                <input type="date" id="f-created" class="form-control bg-light" readonly> </div>
-            <div class="mb-3">
-                <label class="small fw-bold mb-1">所属系统</label>
-                <input type="text" id="f-sys" class="form-control" placeholder="输入系统名称">
-            </div>
-            <div class="mb-3">
-                <label class="small fw-bold mb-1">需求详情描述</label>
-                <textarea id="f-desc" class="form-control" rows="4" placeholder="请详细描述具体工作内容"></textarea>
-            </div>
+    <div id="editModal" class="modal-overlay">
+        <div class="card p-4 shadow-lg border-0" style="width: 90%; max-width: 500px; border-radius: 20px;">
+            <h5 id="modalTitle" class="fw-bold mb-4">需求详情</h5>
+            <input type="hidden" id="fieldId">
+            <div class="mb-3"><label class="small fw-bold">所属系统</label><input type="text" id="fSystem" class="form-control"></div>
+            <div class="mb-3"><label class="small fw-bold">需求描述</label><textarea id="fDesc" class="form-control" rows="3"></textarea></div>
+            <div class="mb-3"><label class="small fw-bold">负责人</label><input type="text" id="fOwner" class="form-control"></div>
             <div class="row mb-3">
+                <div class="col-6"><label class="small fw-bold">计划完成日期</label><input type="date" id="fTime" class="form-control"></div>
                 <div class="col-6">
-                    <label class="small fw-bold mb-1">负责人</label>
-                    <input type="text" id="f-owner" class="form-control">
-                </div>
-                <div class="col-6">
-                    <label class="small fw-bold mb-1">计划完成时间</label>
-                    <input type="date" id="f-plan" class="form-control">
+                    <label class="small fw-bold">状态</label>
+                    <select id="fStatus" class="form-select">
+                        <option value="进行中">进行中</option>
+                        <option value="已完成">已完成</option>
+                        <option value="已取消">已取消</option>
+                    </select>
                 </div>
             </div>
-            <div class="mb-4">
-                <label class="small fw-bold mb-1">当前状态</label>
-                <select id="f-stat" class="form-select">
-                    <option value="进行中">进行中</option>
-                    <option value="已完成">已完成</option>
-                </select>
-            </div>
-            <div class="d-flex gap-2 justify-content-end">
-                <button class="btn btn-light px-4 rounded-pill" onclick="closeModal()">取消</button>
-                <button class="btn btn-primary px-4 rounded-pill" onclick="saveToDB()">确认提交</button>
+            <div class="d-flex gap-2 justify-content-end mt-2">
+                <button class="btn btn-light rounded-pill px-4" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary rounded-pill px-4" onclick="handleSave()">保存</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 核心配置
         const SB_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
         const SB_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
         const client = supabase.createClient(SB_URL, SB_KEY);
         
-        let allItems = [];
-        let filterMode = 'all';
+        let dataStore = [];
+        let filteredData = [];
+        let currentStatusFilter = 'all';
+        let currentPage = 1;
 
-        // 初始化加载
-        window.onload = () => { initDates(); loadData(); };
-
-        // 找回日期初始化逻辑
-        function initDates() {
-            const today = new Date();
-            const dayNum = today.getDay() || 7;
-            const monday = new Date(today.setDate(today.getDate() - dayNum + 1)).toISOString().split('T')[0];
-            const sunday = new Date(today.setDate(today.getDate() + 6)).toISOString().split('T')[0];
-            document.getElementById('date-s').value = monday;
-            document.getElementById('date-e').value = sunday;
-        }
+        window.onload = () => { loadData(); initDates(); };
 
         async function loadData() {
             const { data, error } = await client.from('requirements').select('*').order('created_at', { ascending: false });
             if (!error) {
-                allItems = data;
-                refreshUI();
+                dataStore = data;
+                applyAllFilters();
                 updateStats();
             }
         }
 
-        function fmtD(str) { return str ? str.split('T')[0] : '-'; }
-
-        function refreshUI() {
-            const kw = document.getElementById('searchInp').value.toLowerCase();
-            const today = new Date().setHours(0,0,0,0);
-
-            const filtered = allItems.filter(i => {
-                const pTime = i.plan_time ? new Date(i.plan_time).getTime() : 0;
-                const isDelayed = i.status !== '已完成' && pTime && pTime < today;
-                
-                let matchType = true;
-                if(filterMode === 'doing') matchType = (i.status === '进行中');
-                if(filterMode === 'delay') matchType = isDelayed;
-                if(filterMode === 'week') {
-                    const weekEnd = new Date(new Date().setDate(new Date().getDate() + 7)).getTime();
-                    matchType = i.status !== '已完成' && pTime && pTime <= weekEnd;
-                }
-                const matchKw = (i.description||'').toLowerCase().includes(kw) || (i.system||'').toLowerCase().includes(kw);
-                return matchType && matchKw;
-            });
-
-            document.getElementById('tableBody').innerHTML = filtered.map((i, idx) => {
-                const isDelayed = i.status !== '已完成' && i.plan_time && new Date(i.plan_time) < today;
-                return `<tr>
-                    <td><span class="text-muted small">${idx+1}</span></td>
-                    <td class="text-muted small">${fmtD(i.created_at)}</td>
-                    <td><span class="badge bg-light text-primary border">${i.system || '未归类'}</span></td>
-                    <td class="text-truncate" style="max-width:350px">${i.description}</td>
-                    <td>${i.owner || '-'}</td>
-                    <td><span class="status-tag ${i.status==='已完成'?'tag-done':(isDelayed?'tag-delay':'tag-doing')}">${isDelayed?'已延期':i.status}</span></td>
-                    <td class="fw-bold ${isDelayed?'text-danger':''}">${fmtD(i.plan_time)}</td>
-                    <td>
-                        <button class="btn btn-sm text-primary p-0 me-2" onclick="editItem(${i.id})">编辑</button>
-                        <button class="btn btn-sm text-danger p-0" onclick="deleteItem(${i.id})">删除</button>
-                    </td>
-                </tr>`;
-            }).join('') || '<tr><td colspan="8" class="text-center py-5 text-muted">暂无符合条件的数据</td></tr>';
-        }
-
-        // 找回周报构造逻辑
-        function generateReport() {
-            const start = document.getElementById('date-s').value;
-            const end = document.getElementById('date-e').value;
-            const now = new Date().setHours(0,0,0,0);
-            
-            let groups = {};
-            allItems.forEach(i => { const s = i.system || '其他系统'; if(!groups[s]) groups[s] = []; groups[s].push(i); });
-
-            let doc = `【项目周报】 周期：${start} ~ ${end}\n\n`;
-            doc += `一、整体进度概览\n目前共有需求 ${allItems.length} 项，本周已完成 ${allItems.filter(i=>i.status==='已完成').length} 项，${allItems.filter(i=>i.status==='进行中').length} 项正在推进中。\n\n`;
-            
-            doc += `二、系统明细清单\n`;
-            Object.keys(groups).forEach((sys, idx) => {
-                doc += `${idx+1}. ${sys}模块：\n`;
-                groups[sys].forEach(item => {
-                    doc += `   - [${item.status}] ${item.description} (负责人：${item.owner || '待定'})\n`;
-                });
-            });
-
-            const delays = allItems.filter(i => i.status !== '已完成' && i.plan_time && new Date(i.plan_time) < now);
-            doc += `\n三、异常与风险预警\n`;
-            if(delays.length > 0) {
-                doc += `检测到 ${delays.length} 项存在延期风险，请及时跟进：\n`;
-                delays.forEach(d => doc += `   - 延期任务：${d.description} (计划完成：${fmtD(d.plan_time)})\n`);
-            } else {
-                doc += `当前所有项目均按计划推进，暂无进度预警。`;
-            }
-            document.getElementById('reportArea').innerText = doc;
-        }
-
-        // 找回 AI 解析处理
+        // AI 解析逻辑复位
         async function handleAIParse() {
             const text = document.getElementById('aiInput').value;
-            if(!text) return alert("请先输入需求描述文字");
+            if(!text) return showToast("请输入内容");
             const btn = document.getElementById('aiBtn');
-            btn.innerText = '正在智能深度解析...'; btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 解析中...';
+            
             try {
                 const { data, error } = await client.functions.invoke('parse-requirement', { body: { text } });
                 if(error) throw error;
-                openModal();
-                if(data.system) document.getElementById('f-sys').value = data.system;
-                if(data.description) document.getElementById('f-desc').value = data.description;
-                if(data.owner) document.getElementById('f-owner').value = data.owner;
-                if(data.plan_time) document.getElementById('f-plan').value = data.plan_time.split('T')[0];
-            } catch (e) { 
-                alert("AI 解析遇到问题：跨域策略限制或网络故障。请确保在 http:// 环境下运行或手动输入。"); 
-            } finally { 
-                btn.innerText = 'AI 智能解析'; btn.disabled = false; 
+                // 解析成功后填入并刷新
+                await client.from('requirements').insert([data]);
+                document.getElementById('aiInput').value = '';
+                showToast("解析录入成功！");
+                loadData();
+            } catch (e) {
+                showToast("解析失败，请检查 Edge Function");
+            } finally {
+                btn.innerHTML = '<i class="bi bi-robot me-1"></i>AI 解析';
             }
         }
 
+        function applyAllFilters() {
+            const keyword = document.getElementById('filterInput').value.toLowerCase();
+            const now = new Date().setHours(0,0,0,0);
+
+            filteredData = dataStore.filter(item => {
+                const isDone = item.status === '已完成';
+                const pDate = new Date(item.plan_time).setHours(0,0,0,0);
+                const isDelay = !isDone && pDate < now;
+                
+                let passStat = true;
+                if(currentStatusFilter === 'ongoing') passStat = (item.status === '进行中');
+                if(currentStatusFilter === 'delayed') passStat = isDelay;
+                if(currentStatusFilter === 'today') {
+                    const today = new Date();
+                    const weekEnd = new Date(today.setDate(today.getDate() + (7-today.getDay())));
+                    passStat = !isDone && pDate <= weekEnd.setHours(23,59,59);
+                }
+
+                return passStat && (item.description.toLowerCase().includes(keyword) || (item.system||'').toLowerCase().includes(keyword) || (item.owner||'').toLowerCase().includes(keyword));
+            });
+            render();
+        }
+
+        function render() {
+            const size = parseInt(document.getElementById('pageSize').value);
+            const total = filteredData.length;
+            const maxPage = Math.ceil(total / size) || 1;
+            if(currentPage > maxPage) currentPage = maxPage;
+
+            const startIdx = (currentPage - 1) * size;
+            const pageData = filteredData.slice(startIdx, startIdx + size);
+
+            const now = new Date().setHours(0,0,0,0);
+            document.getElementById('reqTable').innerHTML = pageData.map((item, index) => {
+                const pDate = new Date(item.plan_time).setHours(0,0,0,0);
+                let statusClass = 'tag-doing';
+                let displayStatus = item.status || '进行中';
+                
+                if(item.status === '已完成') statusClass = 'tag-done';
+                else if(pDate < now) { statusClass = 'tag-delay'; displayStatus = '已延期'; }
+
+                return `<tr>
+                    <td class="text-muted small">${startIdx + index + 1}</td>
+                    <td><span class="badge bg-light text-primary border">${item.system || '未归类'}</span></td>
+                    <td class="text-truncate" style="max-width:350px" title="${item.description}">${item.description}</td>
+                    <td class="small">${item.owner || '-'}</td>
+                    <td><span class="status-tag ${statusClass}">${displayStatus}</span></td>
+                    <td class="small">${item.plan_time || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm text-primary p-0 me-2" onclick="openEdit(${item.id})">编辑</button>
+                        <button class="btn btn-sm text-danger p-0" onclick="handleDel(${item.id})">删除</button>
+                    </td>
+                </tr>`;
+            }).join('') || '<tr><td colspan="7" class="text-center py-5 text-muted">暂无需求数据</td></tr>';
+
+            document.getElementById('totalCount').innerText = total;
+            document.getElementById('pageInfo').innerText = `${currentPage}/${maxPage}`;
+        }
+
+        function changePage(dir) {
+            currentPage += dir;
+            if(currentPage < 1) currentPage = 1;
+            render();
+        }
+
         function updateStats() {
-            const today = new Date().setHours(0,0,0,0);
-            document.getElementById('s-total').innerText = allItems.length;
-            document.getElementById('s-doing').innerText = allItems.filter(i => i.status === '进行中').length;
-            document.getElementById('s-delay').innerText = allItems.filter(i => i.status !== '已完成' && i.plan_time && new Date(i.plan_time) < today).length;
-            const weekEnd = new Date(new Date().setDate(new Date().getDate() + 7)).getTime();
-            document.getElementById('s-week').innerText = allItems.filter(i => i.status !== '已完成' && i.plan_time && new Date(i.plan_time).getTime() <= weekEnd).length;
+            const now = new Date().setHours(0,0,0,0);
+            const today = new Date();
+            const weekEnd = new Date(today.setDate(today.getDate() + (7-today.getDay()))).setHours(23,59,59);
+
+            document.getElementById('statTotal').innerText = dataStore.length;
+            document.getElementById('statDoing').innerText = dataStore.filter(i => i.status === '进行中').length;
+            document.getElementById('statDelay').innerText = dataStore.filter(i => i.status !== '已完成' && new Date(i.plan_time).setHours(0,0,0,0) < now).length;
+            document.getElementById('statToday').innerText = dataStore.filter(i => i.status !== '已完成' && new Date(i.plan_time) <= weekEnd).length;
         }
 
-        function switchTab(t) {
-            document.getElementById('view-k').style.display = t==='k'?'block':'none';
-            document.getElementById('view-r').style.display = t==='r'?'block':'none';
-            document.getElementById('tab-k').classList.toggle('active', t==='k');
-            document.getElementById('tab-r').classList.toggle('active', t==='r');
-            if(t==='r') generateReport();
+        function switchTab(tab) {
+            document.getElementById('kanbanView').style.display = tab === 'kanban' ? 'block' : 'none';
+            document.getElementById('reportView').style.display = tab === 'report' ? 'block' : 'none';
+            document.getElementById('tab-kanban').classList.toggle('active', tab === 'kanban');
+            document.getElementById('tab-report').classList.toggle('active', tab === 'report');
+            if(tab === 'report') generateReport();
         }
 
-        function openModal() {
-            document.getElementById('f-id').value = '';
-            document.getElementById('modalTitle').innerText = '新增需求事项';
-            document.getElementById('f-created').value = new Date().toISOString().split('T')[0];
-            document.getElementById('f-sys').value = ''; document.getElementById('f-desc').value = '';
-            document.getElementById('f-owner').value = ''; document.getElementById('f-plan').value = '';
-            document.getElementById('f-stat').value = '进行中';
-            document.getElementById('modal').style.display = 'flex';
+        function openEdit(id) {
+            const i = dataStore.find(x => x.id === id);
+            document.getElementById('fieldId').value = i.id;
+            document.getElementById('fSystem').value = i.system || '';
+            document.getElementById('fDesc').value = i.description;
+            document.getElementById('fOwner').value = i.owner || '';
+            document.getElementById('fTime').value = i.plan_time || '';
+            document.getElementById('fStatus').value = i.status || '进行中';
+            document.getElementById('editModal').style.display = 'flex';
         }
 
-        function editItem(id) {
-            const i = allItems.find(x => x.id === id);
-            document.getElementById('f-id').value = i.id;
-            document.getElementById('modalTitle').innerText = '编辑需求详情';
-            document.getElementById('f-created').value = fmtD(i.created_at);
-            document.getElementById('f-sys').value = i.system || '';
-            document.getElementById('f-desc').value = i.description || '';
-            document.getElementById('f-owner').value = i.owner || '';
-            document.getElementById('f-plan').value = fmtD(i.plan_time);
-            document.getElementById('f-stat').value = i.status || '进行中';
-            document.getElementById('modal').style.display = 'flex';
-        }
-
-        async function saveToDB() {
-            const id = document.getElementById('f-id').value;
-            const obj = { 
-                system: document.getElementById('f-sys').value, 
-                description: document.getElementById('f-desc').value, 
-                owner: document.getElementById('f-owner').value, 
-                plan_time: document.getElementById('f-plan').value || null, 
-                status: document.getElementById('f-stat').value 
+        async function handleSave() {
+            const id = document.getElementById('fieldId').value;
+            const payload = {
+                system: document.getElementById('fSystem').value,
+                description: document.getElementById('fDesc').value,
+                owner: document.getElementById('fOwner').value,
+                plan_time: document.getElementById('fTime').value,
+                status: document.getElementById('fStatus').value
             };
-            const { error } = id ? await client.from('requirements').update(obj).eq('id', id) : await client.from('requirements').insert([obj]);
-            if(!error) { closeModal(); loadData(); }
+            const { error } = id ? await client.from('requirements').update(payload).eq('id', id) : await client.from('requirements').insert([payload]);
+            if(!error) { showToast("保存成功"); closeModal(); loadData(); }
         }
 
-        function setFilter(f) { filterMode = f; refreshUI(); }
-        function closeModal() { document.getElementById('modal').style.display = 'none'; }
-        async function deleteItem(id) { if(confirm('数据删除后无法恢复，确定删除吗？')) { await client.from('requirements').delete().eq('id', id); loadData(); } }
-        async function copyReport() { await navigator.clipboard.writeText(document.getElementById('reportArea').innerText); alert("文字内容已复制"); }
-        
-        // 找回导出逻辑
-        function exportData() {
-            const data = allItems.map(i => ({ "提出时间": fmtD(i.created_at), "系统": i.system, "需求描述": i.description, "负责人": i.owner, "状态": i.status, "计划完成时间": fmtD(i.plan_time) }));
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "需求清单");
-            XLSX.writeFile(wb, `项目需求管理表_${new Date().toLocaleDateString()}.xlsx`);
+        function generateReport() {
+            const start = document.getElementById('reportStart').value;
+            const end = document.getElementById('reportEnd').value;
+            const title = document.getElementById('reportTitle').value;
+            const now = new Date().setHours(0,0,0,0);
+
+            let groups = {};
+            dataStore.forEach(i => {
+                const sys = i.system || '待归类';
+                if(!groups[sys]) groups[sys] = { all: [], done: [], doing: [], delayed: [] };
+                groups[sys].all.push(i);
+                if(i.status === '已完成') groups[sys].done.push(i);
+                else if(new Date(i.plan_time).setHours(0,0,0,0) < now) groups[sys].delayed.push(i);
+                else groups[sys].doing.push(i);
+            });
+
+            let txt = `【${title} (${start} ~ ${end})】\n\n一、总体进度\n当前共有需求 ${dataStore.length} 项，本周已完成 ${dataStore.filter(i=>i.status==='已完成').length} 项。\n\n二、详细明细\n`;
+            Object.keys(groups).forEach((sys, idx) => {
+                const g = groups[sys];
+                txt += `${idx+1}. ${sys}: 共${g.all.length}项 (已完成${g.done.length}, 进行中${g.doing.length})\n`;
+            });
+            txt += `\n三、异常提醒\n目前共有 ${dataStore.filter(i=>i.status!=='已完成' && new Date(i.plan_time)<now).length} 项需求进度超期，请重点关注。`;
+            document.getElementById('weeklyReportPreview').innerText = txt;
+        }
+
+        function initDates() {
+            const now = new Date();
+            const start = new Date(now.setDate(now.getDate() - (now.getDay() || 7) + 1)).toISOString().split('T')[0];
+            const end = new Date(now.setDate(now.getDate() + 6)).toISOString().split('T')[0];
+            document.getElementById('reportStart').value = start;
+            document.getElementById('reportEnd').value = end;
+        }
+
+        function setFilter(f) { currentStatusFilter = f; currentPage = 1; applyAllFilters(); }
+        function openAddModal() { document.getElementById('fieldId').value=''; document.getElementById('editModal').style.display='flex'; }
+        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2000); }
+        async function handleDel(id) { if(confirm('确认删除？')) { await client.from('requirements').delete().eq('id', id); loadData(); } }
+        async function copyReport() { await navigator.clipboard.writeText(document.getElementById('weeklyReportPreview').innerText); showToast("已复制"); }
+        function exportToExcel() {
+            const ws = XLSX.utils.json_to_sheet(dataStore);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "需求清单");
+            XLSX.writeFile(wb, `需求清单_${new Date().toLocaleDateString()}.xlsx`);
         }
     </script>
 </body>
