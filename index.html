@@ -3,128 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能需求管理与周报系统 - 稳定版</title>
+    <title>智能需求看板 Pro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #6366f1; --bg: #f8fafc; }
-        body { background: var(--bg); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #334155; }
-        .navbar { background: white; border-bottom: 1px solid #edf2f7; padding: 1rem 0; position: sticky; top: 0; z-index: 1000; }
+        :root { --primary: #4f46e5; --bg: #f3f4f6; }
+        body { background: var(--bg); font-family: 'PingFang SC', system-ui; color: #1f2937; }
+        .navbar { background: white; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; }
         
-        .nav-tabs { border: none; margin-bottom: 20px; }
-        .nav-tabs .nav-link { border: none; color: #64748b; font-weight: 500; padding: 10px 20px; border-radius: 10px; transition: 0.3s; cursor: pointer; }
-        .nav-tabs .nav-link.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        /* 统计卡片样式还原 */
+        .stat-card { border: none; border-radius: 20px; padding: 25px; color: white; min-height: 140px; position: relative; overflow: hidden; transition: 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); filter: brightness(1.1); }
+        .stat-card i { position: absolute; right: 20px; bottom: 20px; font-size: 3rem; opacity: 0.2; }
+        .bg-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .bg-yellow { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .bg-red { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+        .bg-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
 
-        .quick-input-card, .table-card, .report-card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 25px; background: white; margin-bottom: 25px; }
-        .ai-title { font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-        .ai-textarea { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 14px; background: #fcfcfc; }
+        /* 内容容器 */
+        .glass-card { background: white; border-radius: 24px; border: none; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); padding: 30px; margin-bottom: 30px; }
+        .table-responsive { border-radius: 12px; }
+        .status-tag { padding: 4px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; }
+        .status-ongoing { background: #fff7ed; color: #c2410c; }
+        .status-delayed { background: #fef2f2; color: #dc2626; }
+
+        /* 弹窗样式调整 */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .custom-modal { background: white; width: 90%; max-width: 550px; border-radius: 24px; padding: 35px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
         
-        .stat-card { border: none; border-radius: 16px; padding: 20px; color: white; cursor: pointer; transition: all 0.3s ease; height: 110px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .stat-card:hover { transform: translateY(-5px); }
-        .bg-purple { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-        .bg-pink { background: linear-gradient(135deg, #f472b6, #db2777); }
-        .bg-orange { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
-        .bg-cyan { background: linear-gradient(135deg, #06b6d4, #22d3ee); }
-
-        .status-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
-        .tag-ongoing { background: #ecfdf5; color: #10b981; }
-        .tag-delayed { background: #fff1f2; color: #f43f5e; }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
-        .toast-msg { position: fixed; top: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 3000; }
-        
-        #weeklyReportPreview { background: #f1f5f9; border-radius: 12px; padding: 20px; white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; font-size: 14px; line-height: 1.6; color: #1e293b; max-height: 600px; overflow-y: auto; }
+        .toast-msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 30px; border-radius: 50px; display: none; z-index: 9999; box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
     <div id="toast" class="toast-msg"></div>
 
-    <nav class="navbar">
+    <nav class="navbar mb-4">
         <div class="container d-flex justify-content-between align-items-center">
-            <div class="fw-bold fs-5 text-primary"><i class="bi bi-intersect me-2"></i>智能需求管理系统</div>
-            <ul class="nav nav-tabs m-0">
-                <li class="nav-item">
-                    <a class="nav-link active" id="tab-kanban" onclick="switchTab('kanban')"><i class="bi bi-kanban me-2"></i>需求看板</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="tab-report" onclick="switchTab('report')"><i class="bi bi-file-earmark-medical me-2"></i>项目周报</a>
-                </li>
-            </ul>
+            <div class="fw-bold fs-4 text-primary"><i class="bi bi-rocket-takeoff-fill me-2"></i>需求看板 Pro</div>
+            <div class="nav nav-pills">
+                <button class="nav-link active rounded-pill me-2" id="btn-kanban" onclick="switchView('kanban')">需求看板</button>
+                <button class="nav-link rounded-pill" id="btn-report" onclick="switchView('report')">项目周报</button>
+            </div>
         </div>
     </nav>
 
-    <div class="container pb-5">
-        <div id="kanbanView">
-            <div class="quick-input-card mt-4">
-                <div class="ai-title"><i class="bi bi-lightning-fill text-warning"></i>智能快速录入</div>
-                <textarea id="aiInput" class="form-control ai-textarea" rows="2" placeholder="格式：系统名 描述 处理人邮箱 计划时间..."></textarea>
-                <div class="d-flex gap-2 mt-3">
-                    <button class="btn btn-primary rounded-pill px-4" id="aiBtn" onclick="handleAIParse()"><i class="bi bi-robot me-2"></i>AI 解析</button>
-                </div>
-            </div>
-
+    <div class="container">
+        <div id="view-kanban">
             <div class="row g-4 mb-4">
-                <div class="col-md-3" onclick="setFilter('today')"><div class="stat-card bg-purple"><h3><span id="statToday">0</span></h3><div class="small">今日到期</div></div></div>
-                <div class="col-md-3" onclick="setFilter('ongoing')"><div class="stat-card bg-pink"><h3><span id="statOngoing">0</span></h3><div class="small">进行中</div></div></div>
-                <div class="col-md-3" onclick="setFilter('delayed')"><div class="stat-card bg-orange"><h3><span id="statOverdue">0</span></h3><div class="small">已延期</div></div></div>
-                <div class="col-md-3" onclick="setFilter('all')"><div class="stat-card bg-cyan"><h3><span id="statTotal">0</span></h3><div class="small">总需求数</div></div></div>
+                <div class="col-md-3"><div class="stat-card bg-blue"><h2><span id="s-total">0</span></h2><div>总需求</div><i class="bi bi-list-ul"></i></div></div>
+                <div class="col-md-3"><div class="stat-card bg-yellow"><h2><span id="s-ongoing">0</span></h2><div>进行中</div><i class="bi bi-play-circle"></i></div></div>
+                <div class="col-md-3"><div class="stat-card bg-red"><h2><span id="s-delayed">0</span></h2><div>已延期</div><i class="bi bi-exclamation-triangle"></i></div></div>
+                <div class="col-md-3"><div class="stat-card bg-cyan"><h2><span id="s-today">0</span></h2><div>今日到期</div><i class="bi bi-calendar-check"></i></div></div>
             </div>
 
-            <div class="table-card">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="glass-card">
+                <div class="d-flex justify-content-between mb-4 gap-3">
                     <div class="d-flex gap-2">
-                        <button class="btn btn-success btn-sm px-3" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel me-1"></i>导出 Excel</button>
-                        <button class="btn btn-primary btn-sm px-3" onclick="openAddModal()"><i class="bi bi-plus-lg me-1"></i>新增需求</button>
+                        <button class="btn btn-primary rounded-pill px-4" onclick="openModal()"><i class="bi bi-plus-lg me-2"></i>新增需求</button>
+                        <button class="btn btn-outline-success rounded-pill px-4" onclick="doExport()"><i class="bi bi-file-earmark-excel me-2"></i>导出表格</button>
                     </div>
-                    <div class="search-box position-relative">
-                        <i class="bi bi-search position-absolute" style="left:12px; top:8px; color:#94a3b8;"></i>
-                        <input type="text" id="filterInput" class="form-control ps-5 rounded-pill" placeholder="搜索描述、系统..." oninput="applyAllFilters()">
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text bg-light border-0 rounded-start-pill"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control bg-light border-0 rounded-end-pill" placeholder="搜索系统、负责人..." oninput="renderTable()">
                     </div>
                 </div>
+
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
-                        <thead>
+                        <thead class="table-light">
                             <tr>
-                                <th>序号</th><th>系统</th><th>需求描述</th><th>负责人</th><th>状态</th><th>提出时间</th><th>计划完成</th><th>操作</th>
+                                <th width="60">序号</th>
+                                <th>系统</th>
+                                <th>需求描述</th>
+                                <th>负责人</th>
+                                <th>状态</th>
+                                <th>提出时间</th>
+                                <th>计划完成时间</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
-                        <tbody id="reqTable"></tbody>
+                        <tbody id="reqBody"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <div id="reportView" style="display: none;" class="mt-4">
+        <div id="view-report" style="display: none;">
             <div class="row">
                 <div class="col-md-8">
-                    <div class="report-card">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-bold m-0"><i class="bi bi-eye me-2 text-primary"></i>周报内容预览</h5>
-                            <button class="btn btn-primary btn-sm rounded-pill" onclick="copyReport()">
-                                <i class="bi bi-clipboard me-1"></i> 复制周报文本
-                            </button>
+                    <div class="glass-card">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold m-0">周报预览</h5>
+                            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="copyReport()">复制文本</button>
                         </div>
-                        <div id="weeklyReportPreview">正在生成周报内容...</div>
+                        <div id="reportBox" style="white-space: pre-wrap; line-height: 1.8; font-size: 14px; background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;"></div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="report-card">
-                        <h5 class="fw-bold mb-3"><i class="bi bi-gear me-2 text-primary"></i>周报设置</h5>
+                    <div class="glass-card">
+                        <h6 class="fw-bold mb-3">周报周期设置</h6>
                         <div class="mb-3">
-                            <label class="small fw-bold mb-1">汇报周期</label>
-                            <div class="d-flex gap-2">
-                                <input type="date" id="reportStart" class="form-control form-control-sm">
-                                <span class="align-self-center">-</span>
-                                <input type="date" id="reportEnd" class="form-control form-control-sm">
-                            </div>
+                            <label class="form-label small text-muted">开始日期</label>
+                            <input type="date" id="rep-start" class="form-control rounded-3" onchange="generateReport()">
                         </div>
                         <div class="mb-3">
-                            <label class="small fw-bold mb-1">汇报标题</label>
-                            <input type="text" id="reportTitle" class="form-control form-control-sm" value="需求进展周报">
+                            <label class="form-label small text-muted">结束日期</label>
+                            <input type="date" id="rep-end" class="form-control rounded-3" onchange="generateReport()">
                         </div>
-                        <button class="btn btn-outline-primary btn-sm w-100" onclick="generateReport()">重新生成预览</button>
+                        <button class="btn btn-light w-100 rounded-pill mt-2" onclick="generateReport()">重新生成</button>
                     </div>
                 </div>
             </div>
@@ -132,247 +120,209 @@
     </div>
 
     <div id="editModal" class="modal-overlay">
-        <div class="card p-4 shadow border-0" style="width: 90%; max-width: 500px; border-radius: 20px;">
-            <h5 id="modalTitle" class="fw-bold mb-4">需求信息</h5>
-            <input type="hidden" id="fieldId">
-            <div class="mb-3"><label class="small fw-bold">所属系统</label><input type="text" id="fSystem" class="form-control" placeholder="例如：资产系统"></div>
-            <div class="mb-3"><label class="small fw-bold">需求描述</label><textarea id="fDesc" class="form-control" rows="3"></textarea></div>
-            <div class="mb-3"><label class="small fw-bold">负责人邮箱</label><input type="email" id="fOwner" class="form-control"></div>
-            <div class="row">
-                <div class="col-6 mb-3"><label class="small fw-bold">提出时间</label><input type="date" id="fCreateTime" class="form-control"></div>
-                <div class="col-6 mb-3"><label class="small fw-bold">计划完成</label><input type="date" id="fTime" class="form-control"></div>
+        <div class="custom-modal">
+            <h4 class="fw-bold mb-4" id="modalTitle">需求详情</h4>
+            <input type="hidden" id="f-id">
+            <div class="mb-3">
+                <label class="form-label fw-bold">所属系统</label>
+                <input type="text" id="f-sys" class="form-control rounded-3" placeholder="例如：资产系统">
             </div>
-            <div class="d-flex gap-2 justify-content-end mt-3">
-                <button class="btn btn-light" onclick="closeModal()">取消</button>
-                <button class="btn btn-primary px-4" onclick="handleSave()">确认保存</button>
+            <div class="mb-3">
+                <label class="form-label fw-bold">需求描述</label>
+                <textarea id="f-desc" class="form-control rounded-3" rows="3" placeholder="请输入具体需求内容"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">负责人邮箱</label>
+                <input type="text" id="f-owner" class="form-control rounded-3" placeholder="例如：zoey">
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label fw-bold">提出时间</label>
+                    <input type="date" id="f-created" class="form-control rounded-3">
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label fw-bold">计划完成</label>
+                    <input type="date" id="f-plan" class="form-control rounded-3">
+                </div>
+            </div>
+            <div class="d-flex gap-3 mt-4">
+                <button class="btn btn-light flex-grow-1 rounded-pill py-2" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary flex-grow-1 rounded-pill py-2" onclick="handleSave()">确认保存</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. 初始化配置
         const SB_URL = 'https://gcetwdskijgnegzvsxta.supabase.co';
         const SB_KEY = 'sb_publishable_4GJMrHSttX2bjshdvPIWNQ_xmMDl2mD';
         const client = supabase.createClient(SB_URL, SB_KEY);
         
-        let dataStore = [];
-        let currentStatusFilter = 'all';
+        let store = [];
 
         window.onload = () => {
+            initDates();
             loadData();
-            initReportDates();
         };
 
-        // 2. 数据加载
         async function loadData() {
-            const { data, error } = await client.from('requirements').select('*').order('created_at', { ascending: false });
-            if (!error) {
-                dataStore = data;
-                applyAllFilters();
+            try {
+                const { data, error } = await client.from('requirements').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                store = data || [];
+                renderTable();
                 updateStats();
-                generateReport();
+            } catch (e) {
+                console.error("加载数据失败:", e);
+                showToast("❌ 无法连接数据库，请检查网络");
             }
         }
 
-        // 3. 核心修复逻辑：格式化日期（防止 undefined）
-        function formatDate(dateStr) {
-            if(!dateStr) return ''; 
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return '';
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        function formatDate(str) {
+            if (!str) return '-';
+            return str.split('T')[0];
         }
 
-        // 4. 视图切换
-        function switchTab(tab) {
-            document.getElementById('tab-kanban').classList.remove('active');
-            document.getElementById('tab-report').classList.remove('active');
-            if(tab === 'kanban') {
-                document.getElementById('kanbanView').style.display = 'block';
-                document.getElementById('reportView').style.display = 'none';
-                document.getElementById('tab-kanban').classList.add('active');
-            } else {
-                document.getElementById('kanbanView').style.display = 'none';
-                document.getElementById('reportView').style.display = 'block';
-                document.getElementById('tab-report').classList.add('active');
-                generateReport();
-            }
-        }
+        function renderTable() {
+            const kw = document.getElementById('searchInput').value.toLowerCase();
+            const now = new Date().setHours(0,0,0,0);
+            
+            const filtered = store.filter(i => 
+                (i.system?.toLowerCase().includes(kw) || i.description?.toLowerCase().includes(kw) || i.owner?.toLowerCase().includes(kw))
+            );
 
-        // 5. 核心修复逻辑：数据保存（处理 Timestamp 语法错误）
-        async function handleSave() {
-            const id = document.getElementById('fieldId').value;
-            const planTimeInput = document.getElementById('fTime').value;
-            const createTimeInput = document.getElementById('fCreateTime').value;
-
-            const payload = {
-                system: document.getElementById('fSystem').value || '通用',
-                description: document.getElementById('fDesc').value || '',
-                owner: document.getElementById('fOwner').value || '',
-                created_at: createTimeInput ? new Date(createTimeInput).toISOString() : new Date().toISOString(),
-                plan_time: planTimeInput ? new Date(planTimeInput).toISOString() : null // 修复：空日期发 null
-            };
-
-            const { error } = id ? 
-                await client.from('requirements').update(payload).eq('id', id) : 
-                await client.from('requirements').insert([payload]);
-
-            if(!error) { 
-                showToast("✅ 保存成功"); 
-                closeModal(); 
-                loadData(); 
-            } else {
-                console.error(error);
-                showToast("❌ 保存失败: " + error.message);
-            }
-        }
-
-        // 6. 核心渲染逻辑（自动识别状态）
-        function render(data) {
-            const now = new Date(); now.setHours(0,0,0,0);
-            document.getElementById('reqTable').innerHTML = data.map((item, index) => {
-                const pDate = item.plan_time ? new Date(item.plan_time) : null;
-                if(pDate) pDate.setHours(0,0,0,0);
-                const isOverdue = pDate && pDate < now;
-                
+            const html = filtered.map((item, idx) => {
+                const isOverdue = item.plan_time && new Date(item.plan_time) < now;
                 return `<tr>
-                    <td class="text-muted small">${index+1}</td>
-                    <td><span class="badge bg-light text-primary border">${item.system || '通用'}</span></td>
-                    <td class="text-truncate" style="max-width:250px">${item.description}</td>
-                    <td class="small">${item.owner || '-'}</td>
-                    <td><span class="status-tag ${isOverdue?'tag-delayed':'tag-ongoing'}">● ${isOverdue?'已延期':'进行中'}</span></td>
-                    <td class="small">${formatDate(item.created_at)}</td>
-                    <td class="small fw-bold">${formatDate(item.plan_time) || '-'}</td>
+                    <td class="text-muted small">${idx + 1}</td>
+                    <td><span class="badge bg-primary bg-opacity-10 text-primary px-2 border border-primary border-opacity-25">${item.system || '通用'}</span></td>
+                    <td class="text-truncate" style="max-width:300px">${item.description}</td>
+                    <td>${item.owner || '-'}</td>
+                    <td><span class="status-tag ${isOverdue?'status-delayed':'status-ongoing'}">${isOverdue?'已延期':'进行中'}</span></td>
+                    <td class="small text-muted">${formatDate(item.created_at)}</td>
+                    <td class="fw-bold">${formatDate(item.plan_time)}</td>
                     <td>
-                        <button class="btn btn-sm text-primary p-0 me-2" onclick="openEdit(${item.id})">编辑</button>
-                        <button class="btn btn-sm text-danger p-0" onclick="handleDel(${item.id})">删除</button>
+                        <button class="btn btn-link btn-sm text-decoration-none" onclick="editItem(${item.id})">编辑</button>
+                        <button class="btn btn-link btn-sm text-danger text-decoration-none" onclick="delItem(${item.id})">删除</button>
                     </td>
                 </tr>`;
-            }).join('') || '<tr><td colspan="8" class="text-center py-4 text-muted">暂无符合条件的需求</td></tr>';
+            }).join('');
+            
+            document.getElementById('reqBody').innerHTML = html || '<tr><td colspan="8" class="text-center py-5 text-muted">暂无需求数据</td></tr>';
         }
 
-        // 7. 统计与过滤逻辑
-        function updateStats() {
-            const now = new Date(); now.setHours(0,0,0,0);
-            document.getElementById('statTotal').innerText = dataStore.length;
-            document.getElementById('statOngoing').innerText = dataStore.filter(i => !i.plan_time || new Date(i.plan_time) >= now).length;
-            document.getElementById('statOverdue').innerText = dataStore.filter(i => i.plan_time && new Date(i.plan_time) < now).length;
-            document.getElementById('statToday').innerText = dataStore.filter(i => i.plan_time && new Date(i.plan_time).toDateString() === now.toDateString()).length;
-        }
+        async function handleSave() {
+            const id = document.getElementById('f-id').value;
+            const payload = {
+                system: document.getElementById('f-sys').value || '未分类',
+                description: document.getElementById('f-desc').value,
+                owner: document.getElementById('f-owner').value,
+                created_at: document.getElementById('f-created').value || new Date().toISOString().split('T')[0],
+                plan_time: document.getElementById('f-plan').value || null
+            };
 
-        function setFilter(s) { currentStatusFilter = s; applyAllFilters(); }
+            if(!payload.description) return showToast("请输入需求描述");
 
-        function applyAllFilters() {
-            const keyword = document.getElementById('filterInput').value.toLowerCase();
-            const now = new Date(); now.setHours(0,0,0,0);
-            const filtered = dataStore.filter(item => {
-                const pDate = item.plan_time ? new Date(item.plan_time) : null;
-                if(pDate) pDate.setHours(0,0,0,0);
-                const isOverdue = pDate && pDate < now;
-                let passStatus = (currentStatusFilter === 'all') || 
-                                 (currentStatusFilter === 'delayed' && isOverdue) || 
-                                 (currentStatusFilter === 'ongoing' && !isOverdue) ||
-                                 (currentStatusFilter === 'today' && pDate && pDate.getTime() === now.getTime());
-                return passStatus && (item.description.toLowerCase().includes(keyword) || (item.system || '').toLowerCase().includes(keyword));
-            });
-            render(filtered);
-        }
-
-        // 8. 弹窗与 AI
-        function openAddModal() {
-            document.getElementById('fieldId').value = '';
-            document.getElementById('fSystem').value = '';
-            document.getElementById('fDesc').value = '';
-            document.getElementById('fOwner').value = '';
-            document.getElementById('fCreateTime').value = formatDate(new Date());
-            document.getElementById('fTime').value = '';
-            document.getElementById('editModal').style.display = 'flex';
-        }
-
-        function openEdit(id) {
-            const i = dataStore.find(x => x.id === id);
-            document.getElementById('fieldId').value = i.id;
-            document.getElementById('fSystem').value = i.system || '';
-            document.getElementById('fDesc').value = i.description;
-            document.getElementById('fOwner').value = i.owner || '';
-            document.getElementById('fCreateTime').value = formatDate(i.created_at);
-            document.getElementById('fTime').value = formatDate(i.plan_time);
-            document.getElementById('editModal').style.display = 'flex';
-        }
-
-        async function handleAIParse() {
-            const text = document.getElementById('aiInput').value;
-            if(!text) return showToast("请输入描述文字");
-            const btn = document.getElementById('aiBtn');
-            btn.innerText = '解析中...'; btn.disabled = true;
             try {
-                const { data, error } = await client.functions.invoke('parse-requirement', { body: { text } });
-                if(data) {
-                    openAddModal();
-                    document.getElementById('fSystem').value = data.system || '';
-                    document.getElementById('fDesc').value = data.description || '';
-                    document.getElementById('fOwner').value = data.owner || '';
-                    if(data.plan_time) document.getElementById('fTime').value = formatDate(data.plan_time);
-                }
-            } catch(e) { showToast("AI 解析失败，请手动录入"); }
-            btn.innerText = 'AI 解析'; btn.disabled = false;
-        }
+                const { error } = id ? 
+                    await client.from('requirements').update(payload).eq('id', id) : 
+                    await client.from('requirements').insert([payload]);
 
-        // 9. 周报与导出
-        function initReportDates() {
-            const now = new Date();
-            const day = now.getDay() || 7;
-            const monday = new Date(now.setDate(now.getDate() - day + 1));
-            const sunday = new Date(now.setDate(now.getDate() + 6));
-            document.getElementById('reportStart').value = formatDate(monday);
-            document.getElementById('reportEnd').value = formatDate(sunday);
-        }
+                if (error) throw error;
 
-        function generateReport() {
-            const title = document.getElementById('reportTitle').value;
-            const start = document.getElementById('reportStart').value;
-            const end = document.getElementById('reportEnd').value;
-            const now = new Date(); now.setHours(0,0,0,0);
-
-            const groups = {};
-            dataStore.forEach(item => {
-                const sys = item.system || '其他系统';
-                if(!groups[sys]) groups[sys] = [];
-                groups[sys].push(item);
-            });
-
-            let reportText = `【${title}（${start} - ${end}）】\n\n一、 各系统进展\n\n`;
-            Object.keys(groups).forEach((sys, index) => {
-                const items = groups[sys];
-                const delayedCount = items.filter(i => i.plan_time && new Date(i.plan_time) < now).length;
-                reportText += `${index+1}. ${sys}\n- 累计需求：${items.length}项；进行中：${items.length - delayedCount}项；${delayedCount>0?'已延期：'+delayedCount+'项':'无延期项'}\n\n`;
-            });
-            reportText += `二、 风险提示\n\n目前共有 ${dataStore.filter(i => i.plan_time && new Date(i.plan_time) < now).length} 项延期需求，请关注。`;
-            document.getElementById('weeklyReportPreview').innerText = reportText;
-        }
-
-        async function copyReport() {
-            await navigator.clipboard.writeText(document.getElementById('weeklyReportPreview').innerText);
-            showToast("✅ 已复制到剪贴板");
-        }
-
-        async function handleDel(id) {
-            if(confirm('确定删除此需求？')) {
-                const { error } = await client.from('requirements').delete().eq('id', id);
-                if(!error) loadData();
+                showToast("✅ 保存成功");
+                closeModal();
+                loadData();
+            } catch (e) {
+                console.error("保存报错:", e);
+                showToast("❌ 保存失败: 网络异常或数据格式错误");
             }
         }
 
-        function exportToExcel() {
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(dataStore.map(i => ({
-                "系统": i.system, "需求描述": i.description, "负责人": i.owner, "计划完成": formatDate(i.plan_time)
-            })));
-            XLSX.utils.book_append_sheet(wb, ws, "需求清单");
-            XLSX.writeFile(wb, "需求管理表.xlsx");
+        function updateStats() {
+            const now = new Date().setHours(0,0,0,0);
+            document.getElementById('s-total').innerText = store.length;
+            document.getElementById('s-ongoing').innerText = store.filter(i => !i.plan_time || new Date(i.plan_time) >= now).length;
+            document.getElementById('s-delayed').innerText = store.filter(i => i.plan_time && new Date(i.plan_time) < now).length;
+            document.getElementById('s-today').innerText = store.filter(i => i.plan_time && formatDate(i.plan_time) === formatDate(new Date().toISOString())).length;
+        }
+
+        function editItem(id) {
+            const i = store.find(x => x.id === id);
+            document.getElementById('f-id').value = i.id;
+            document.getElementById('f-sys').value = i.system;
+            document.getElementById('f-desc').value = i.description;
+            document.getElementById('f-owner').value = i.owner;
+            document.getElementById('f-created').value = formatDate(i.created_at);
+            document.getElementById('f-plan').value = formatDate(i.plan_time);
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        async function delItem(id) {
+            if(confirm('确定删除该需求吗？不可恢复。')) {
+                await client.from('requirements').delete().eq('id', id);
+                loadData();
+            }
+        }
+
+        function openModal() {
+            document.getElementById('f-id').value = '';
+            document.getElementById('f-sys').value = '';
+            document.getElementById('f-desc').value = '';
+            document.getElementById('f-owner').value = '';
+            document.getElementById('f-created').value = new Date().toISOString().split('T')[0];
+            document.getElementById('f-plan').value = '';
+            document.getElementById('editModal').style.display = 'flex';
         }
 
         function closeModal() { document.getElementById('editModal').style.display = 'none'; }
         function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000); }
+
+        function switchView(v) {
+            document.getElementById('view-kanban').style.display = v === 'kanban' ? 'block' : 'none';
+            document.getElementById('view-report').style.display = v === 'report' ? 'block' : 'none';
+            document.getElementById('btn-kanban').classList.toggle('active', v === 'kanban');
+            document.getElementById('btn-report').classList.toggle('active', v === 'report');
+            if(v === 'report') generateReport();
+        }
+
+        function initDates() {
+            const today = new Date();
+            const lastMon = new Date(today.setDate(today.getDate() - today.getDay() + 1)).toISOString().split('T')[0];
+            const nextSun = new Date(today.setDate(today.getDate() + 6)).toISOString().split('T')[0];
+            document.getElementById('rep-start').value = lastMon;
+            document.getElementById('rep-end').value = nextSun;
+        }
+
+        function generateReport() {
+            const start = document.getElementById('rep-start').value;
+            const end = document.getElementById('rep-end').value;
+            let text = `一、整体进度概览\n目前共有需求 ${store.length} 项，本周新增 ${store.filter(i => i.created_at >= start).length} 项。\n\n二、系统明细清单\n`;
+            
+            const groups = {};
+            store.forEach(i => { groups[i.system] = groups[i.system] || []; groups[i.system].push(i); });
+            
+            Object.keys(groups).forEach((sys, idx) => {
+                text += `${idx + 1}. ${sys}：\n`;
+                groups[sys].forEach(item => {
+                    text += `   - [${new Date(item.plan_time) < new Date() ? '延期' : '进行中'}] ${item.description}（负责人：${item.owner}）\n`;
+                });
+            });
+            document.getElementById('reportBox').innerText = text;
+        }
+
+        async function copyReport() {
+            await navigator.clipboard.writeText(document.getElementById('reportBox').innerText);
+            showToast("✅ 周报已复制");
+        }
+
+        function doExport() {
+            const ws = XLSX.utils.json_to_sheet(store.map(i => ({
+                "系统": i.system, "描述": i.description, "负责人": i.owner, "提出时间": formatDate(i.created_at), "计划完成": formatDate(i.plan_time)
+            })));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "需求清单");
+            XLSX.writeFile(wb, `需求看板_${new Date().toLocaleDateString()}.xlsx`);
+        }
     </script>
 </body>
 </html>
