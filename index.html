@@ -9,11 +9,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #6366f1; --bg: #f8fafc; }
+        :root { --primary: #6366f1; --bg: #f8fafc; --success: #10b981; }
         body { background: var(--bg); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #334155; }
-        .navbar { background: white; border-bottom: 1px solid #edf2f7; padding: 1rem 0; sticky-top: true; }
+        .navbar { background: white; border-bottom: 1px solid #edf2f7; padding: 1rem 0; position: sticky; top: 0; z-index: 1000; }
         
-        /* 导航菜单样式 */
         .nav-tabs { border: none; margin-bottom: 20px; }
         .nav-tabs .nav-link { border: none; color: #64748b; font-weight: 500; padding: 10px 20px; border-radius: 10px; transition: 0.3s; }
         .nav-tabs .nav-link.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
@@ -32,12 +31,15 @@
         .status-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
         .tag-ongoing { background: #ecfdf5; color: #10b981; }
         .tag-delayed { background: #fff1f2; color: #f43f5e; }
+        .tag-done { background: #f1f5f9; color: #64748b; text-decoration: line-through; }
+        .tag-finished { background: #e0f2fe; color: #0284c7; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(4px); }
         .toast-msg { position: fixed; top: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 3000; }
         
-        /* 周报预览样式 */
         #weeklyReportPreview { background: #f1f5f9; border-radius: 12px; padding: 20px; white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; font-size: 14px; line-height: 1.6; color: #1e293b; max-height: 600px; overflow-y: auto; }
+        .btn-email { color: #6366f1; border: 1px solid #6366f1; }
+        .btn-email:hover { background: #6366f1; color: white; }
     </style>
 </head>
 <body>
@@ -82,7 +84,7 @@
                     </div>
                     <div class="search-box position-relative">
                         <i class="bi bi-search position-absolute" style="left:12px; top:8px; color:#94a3b8;"></i>
-                        <input type="text" id="filterInput" class="form-control ps-5 rounded-pill" placeholder="搜索..." oninput="applyAllFilters()">
+                        <input type="text" id="filterInput" class="form-control ps-5 rounded-pill" placeholder="搜索描述、系统、负责人..." oninput="applyAllFilters()">
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -124,13 +126,9 @@
                         </div>
                         <div class="mb-3">
                             <label class="small fw-bold mb-1">汇报标题</label>
-                            <input type="text" id="reportTitle" class="form-control form-control-sm" value="闪批及其他系统需求进展周报">
+                            <input type="text" id="reportTitle" class="form-control form-control-sm" value="项目需求进展周报">
                         </div>
                         <button class="btn btn-outline-primary btn-sm w-100" onclick="generateReport()">重新生成预览</button>
-                        <hr>
-                        <div class="p-3 bg-light rounded-3">
-                            <p class="small text-muted mb-0"><i class="bi bi-info-circle me-1"></i>系统会自动按所属系统归类需求，并根据“已延期”状态自动填入风险项。</p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -143,7 +141,19 @@
             <input type="hidden" id="fieldId">
             <div class="mb-3"><label class="small fw-bold">所属系统</label><input type="text" id="fSystem" class="form-control" placeholder="例如：资产系统"></div>
             <div class="mb-3"><label class="small fw-bold">需求描述</label><textarea id="fDesc" class="form-control" rows="3"></textarea></div>
-            <div class="mb-3"><label class="small fw-bold">负责人邮箱</label><input type="email" id="fOwner" class="form-control"></div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="small fw-bold">负责人邮箱</label>
+                    <input type="email" id="fOwner" class="form-control" placeholder="example@mail.com">
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="small fw-bold">当前状态</label>
+                    <select id="fStatus" class="form-select">
+                        <option value="进行中">进行中</option>
+                        <option value="已完成">已完成</option>
+                    </select>
+                </div>
+            </div>
             <div class="row">
                 <div class="col-6 mb-3"><label class="small fw-bold">提出时间</label><input type="date" id="fCreateTime" class="form-control"></div>
                 <div class="col-6 mb-3"><label class="small fw-bold">计划完成</label><input type="date" id="fTime" class="form-control"></div>
@@ -151,6 +161,22 @@
             <div class="d-flex gap-2 justify-content-end mt-3">
                 <button class="btn btn-light" onclick="closeModal()">取消</button>
                 <button class="btn btn-primary px-4" onclick="handleSave()">确认保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="emailModal" class="modal-overlay">
+        <div class="card p-4 shadow border-0" style="width: 90%; max-width: 450px; border-radius: 20px;">
+            <h5 class="fw-bold mb-3"><i class="bi bi-envelope-at me-2"></i>发送邮件提醒</h5>
+            <div class="p-3 bg-light rounded-3 mb-3 small">
+                <div class="mb-2"><strong>负责人：</strong> <span id="emOwner"></span></div>
+                <div class="mb-2"><strong>需求内容：</strong> <span id="emDesc"></span></div>
+                <div><strong>计划时间：</strong> <span id="emTime"></span></div>
+            </div>
+            <p class="text-muted small">点击确认将唤起邮件客户端，向负责人发送进度提醒。</p>
+            <div class="d-flex gap-2 justify-content-end">
+                <button class="btn btn-light" onclick="document.getElementById('emailModal').style.display='none'">取消</button>
+                <button class="btn btn-primary" id="confirmEmailBtn">确认发送</button>
             </div>
         </div>
     </div>
@@ -178,17 +204,16 @@
             }
         }
 
-        // 菜单切换
         function switchTab(tab) {
             document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
             if(tab === 'kanban') {
                 document.getElementById('kanbanView').style.display = 'block';
                 document.getElementById('reportView').style.display = 'none';
-                event.target.classList.add('active');
+                document.querySelector('[onclick="switchTab(\'kanban\')"]').classList.add('active');
             } else {
                 document.getElementById('kanbanView').style.display = 'none';
                 document.getElementById('reportView').style.display = 'block';
-                document.querySelectorAll('.nav-link')[1].classList.add('active');
+                document.querySelector('[onclick="switchTab(\'report\')"]').classList.add('active');
                 generateReport();
             }
         }
@@ -199,7 +224,6 @@
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
 
-        // 周报生成逻辑
         function initReportDates() {
             const now = new Date();
             const day = now.getDay() || 7;
@@ -213,10 +237,8 @@
             const title = document.getElementById('reportTitle').value;
             const start = document.getElementById('reportStart').value;
             const end = document.getElementById('reportEnd').value;
-            const now = new Date();
-            now.setHours(0,0,0,0);
+            const now = new Date(); now.setHours(0,0,0,0);
 
-            // 1. 按系统分组
             const groups = {};
             dataStore.forEach(item => {
                 const sys = item.system || '其他系统';
@@ -224,41 +246,36 @@
                 groups[sys].push(item);
             });
 
-            let reportText = `【${title}（${start} - ${end}）】\n\n大家好：\n\n本周继续同步系统需求整体进展。现将本周情况汇报如下：\n\n一、 各系统需求当前状态与进展\n\n`;
+            let reportText = `【${title}（${start} - ${end}）】\n\n大家好：\n\n本周各系统需求进展汇报如下：\n\n一、 需求进展详情\n\n`;
 
-            // 2. 填充各系统进展
             Object.keys(groups).forEach((sys, index) => {
                 const items = groups[sys];
                 const total = items.length;
-                const ongoing = items.filter(i => new Date(i.plan_time) >= now).length;
-                const delayed = items.filter(i => new Date(i.plan_time) < now).length;
-
+                const finished = items.filter(i => i.status === '已完成').length;
+                const delayed = items.filter(i => i.status !== '已完成' && new Date(i.plan_time) < now).length;
+                
                 reportText += `${index + 1}. ${sys}\n`;
-                reportText += `需求（${total}项）：${ongoing}项进行中；${delayed > 0 ? delayed + '项已延期' : '暂无延期'}。\n\n`;
+                reportText += `总计 ${total} 项：已完成 ${finished} 项；${delayed > 0 ? delayed + ' 项已延期' : '进行中'}\n\n`;
             });
 
-            // 3. 风险识别
-            const riskItems = dataStore.filter(i => new Date(i.plan_time) < now);
-            reportText += `二、 当前主要情况与风险\n\n`;
+            const riskItems = dataStore.filter(i => i.status !== '已完成' && new Date(i.plan_time) < now);
+            reportText += `二、 风险提示\n\n`;
             if(riskItems.length > 0) {
-                reportText += `1. 进度延迟：当前共有 ${riskItems.length} 项需求发生延期，主要涉及 ${[...new Set(riskItems.map(i => i.system))].join('、')} 系统。\n`;
-                reportText += `2. 风险同步：建议协调开发资源，优先处理延期项：${riskItems.slice(0,2).map(i => i.description).join('; ')}等。\n\n`;
+                reportText += `目前共有 ${riskItems.length} 项需求延期，重点关注：${riskItems.slice(0,3).map(i => i.description).join('; ')}。\n\n`;
             } else {
-                reportText += `1. 整体进展：目前各系统需求按序推进，状态稳定，暂无重大风险。\n\n`;
+                reportText += `暂无重大延期风险，各项工作按计划推进中。\n\n`;
             }
 
-            reportText += `三、 后续计划与协调事项\n\n1. 持续跟进剩余需求的排期与实施。\n2. 各需求的具体详情，请参见看板系统。\n\n以上为本周工作进展，请各位审阅。如有问题，请随时反馈。\n\n谢谢！`;
-
+            reportText += `三、 后续安排\n\n1. 请各负责人按计划闭环剩余需求。\n2. 如有进度阻塞请及时反馈。`;
             document.getElementById('weeklyReportPreview').innerText = reportText;
         }
 
         async function copyReport() {
             const text = document.getElementById('weeklyReportPreview').innerText;
             await navigator.clipboard.writeText(text);
-            showToast("周报内容已复制到剪贴板！");
+            showToast("周报内容已复制！");
         }
 
-        // 看板原有逻辑保持...
         function setFilter(status) {
             currentStatusFilter = status;
             applyAllFilters();
@@ -266,20 +283,23 @@
 
         function applyAllFilters() {
             const keyword = document.getElementById('filterInput').value.toLowerCase();
-            const now = new Date();
-            now.setHours(0,0,0,0);
+            const now = new Date(); now.setHours(0,0,0,0);
 
             const filtered = dataStore.filter(item => {
-                const pDate = new Date(item.plan_time);
-                pDate.setHours(0,0,0,0);
-                const isOverdue = pDate < now;
+                const pDate = new Date(item.plan_time); pDate.setHours(0,0,0,0);
+                const isOverdue = pDate < now && item.status !== '已完成';
+                const isFinished = item.status === '已完成';
                 
                 let passStatus = (currentStatusFilter === 'all') || 
                                  (currentStatusFilter === 'delayed' && isOverdue) || 
-                                 (currentStatusFilter === 'ongoing' && !isOverdue) ||
-                                 (currentStatusFilter === 'today' && pDate.getTime() === now.getTime());
+                                 (currentStatusFilter === 'ongoing' && item.status === '进行中' && !isOverdue) ||
+                                 (currentStatusFilter === 'today' && pDate.getTime() === now.getTime() && !isFinished);
 
-                return passStatus && (item.description.toLowerCase().includes(keyword) || (item.system || '').toLowerCase().includes(keyword));
+                const matchText = (item.description || '').toLowerCase().includes(keyword) || 
+                                 (item.system || '').toLowerCase().includes(keyword) || 
+                                 (item.owner || '').toLowerCase().includes(keyword);
+
+                return passStatus && matchText;
             });
             render(filtered);
         }
@@ -288,35 +308,45 @@
             const now = new Date(); now.setHours(0,0,0,0);
             document.getElementById('reqTable').innerHTML = data.map((item, index) => {
                 const pDate = new Date(item.plan_time); pDate.setHours(0,0,0,0);
-                const isOverdue = pDate < now;
+                const isOverdue = pDate < now && item.status !== '已完成';
+                const isFinished = item.status === '已完成';
+                
+                let statusClass = 'tag-ongoing';
+                let statusText = '进行中';
+                if(isFinished) { statusClass = 'tag-finished'; statusText = '已完成'; }
+                else if(isOverdue) { statusClass = 'tag-delayed'; statusText = '已延期'; }
+
                 return `<tr>
                     <td class="text-muted small">${index+1}</td>
                     <td><span class="badge bg-light text-primary border">${item.system || '通用'}</span></td>
-                    <td class="text-truncate" style="max-width:200px">${item.description}</td>
+                    <td class="text-truncate" style="max-width:250px" title="${item.description}">${item.description}</td>
                     <td class="small">${item.owner || '-'}</td>
-                    <td><span class="status-tag ${isOverdue?'tag-delayed':'tag-ongoing'}">● ${isOverdue?'已延期':'进行中'}</span></td>
+                    <td><span class="status-tag ${statusClass}">● ${statusText}</span></td>
                     <td class="small">${formatDate(item.created_at)}</td>
                     <td class="small fw-bold">${formatDate(item.plan_time)}</td>
                     <td>
                         <button class="btn btn-sm text-primary p-0 me-2" onclick="openEdit(${item.id})">编辑</button>
+                        <button class="btn btn-sm text-info p-0 me-2" onclick="openReminder(${item.id})">提醒</button>
                         <button class="btn btn-sm text-danger p-0" onclick="handleDel(${item.id})">删除</button>
                     </td>
                 </tr>`;
-            }).join('') || '<tr><td colspan="8" class="text-center py-4">暂无数据</td></tr>';
+            }).join('') || '<tr><td colspan="8" class="text-center py-4">暂无匹配数据</td></tr>';
         }
 
         function updateStats() {
             const now = new Date(); now.setHours(0,0,0,0);
             document.getElementById('statTotal').innerText = dataStore.length;
-            document.getElementById('statOngoing').innerText = dataStore.filter(i => new Date(i.plan_time) >= now).length;
-            document.getElementById('statOverdue').innerText = dataStore.filter(i => new Date(i.plan_time) < now).length;
-            document.getElementById('statToday').innerText = dataStore.filter(i => new Date(i.plan_time).toDateString() === now.toDateString()).length;
+            document.getElementById('statOngoing').innerText = dataStore.filter(i => i.status === '进行中').length;
+            document.getElementById('statOverdue').innerText = dataStore.filter(i => i.status !== '已完成' && new Date(i.plan_time) < now).length;
+            document.getElementById('statToday').innerText = dataStore.filter(i => i.status !== '已完成' && new Date(i.plan_time).toDateString() === now.toDateString()).length;
         }
 
         function openAddModal() {
             document.getElementById('fieldId').value = '';
             document.getElementById('fSystem').value = '';
             document.getElementById('fDesc').value = '';
+            document.getElementById('fOwner').value = '';
+            document.getElementById('fStatus').value = '进行中';
             document.getElementById('fCreateTime').value = formatDate(new Date());
             document.getElementById('fTime').value = '';
             document.getElementById('editModal').style.display = 'flex';
@@ -328,9 +358,28 @@
             document.getElementById('fSystem').value = i.system || '';
             document.getElementById('fDesc').value = i.description;
             document.getElementById('fOwner').value = i.owner || '';
+            document.getElementById('fStatus').value = i.status || '进行中';
             document.getElementById('fCreateTime').value = formatDate(i.created_at);
             document.getElementById('fTime').value = formatDate(i.plan_time);
             document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function openReminder(id) {
+            const i = dataStore.find(x => x.id === id);
+            if(!i.owner) { showToast("请先设置负责人邮箱！"); return; }
+            
+            document.getElementById('emOwner').innerText = i.owner;
+            document.getElementById('emDesc').innerText = i.description;
+            document.getElementById('emTime').innerText = formatDate(i.plan_time);
+            
+            document.getElementById('emailModal').style.display = 'flex';
+            
+            document.getElementById('confirmEmailBtn').onclick = () => {
+                const subject = encodeURIComponent(`进度提醒：${i.description.substring(0,15)}...`);
+                const body = encodeURIComponent(`你好，\n\n关于您负责的需求：【${i.description}】\n计划完成时间为：${formatDate(i.plan_time)}\n\n请确认当前开发进度，如有延期风险请及时沟通。`);
+                window.location.href = `mailto:${i.owner}?subject=${subject}&body=${body}`;
+                document.getElementById('emailModal').style.display = 'none';
+            };
         }
 
         function closeModal() { document.getElementById('editModal').style.display = 'none'; }
@@ -341,22 +390,49 @@
                 system: document.getElementById('fSystem').value,
                 description: document.getElementById('fDesc').value,
                 owner: document.getElementById('fOwner').value,
+                status: document.getElementById('fStatus').value,
                 created_at: document.getElementById('fCreateTime').value,
                 plan_time: document.getElementById('fTime').value
             };
             const { error } = id ? await client.from('requirements').update(payload).eq('id', id) : await client.from('requirements').insert([payload]);
             if(!error) { showToast("保存成功"); closeModal(); loadData(); }
+            else { showToast("保存失败：" + error.message); }
         }
 
         async function handleDel(id) {
-            if(confirm('确认删除？')) {
-                await client.from('requirements').delete().eq('id', id);
-                loadData();
+            if(confirm('确认删除该需求吗？')) {
+                const { error } = await client.from('requirements').delete().eq('id', id);
+                if(!error) { showToast("已删除"); loadData(); }
             }
         }
 
-        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000); }
-        function handleAIParse() { showToast("AI 解析服务配置中..."); }
+        function showToast(m) { 
+            const t = document.getElementById('toast'); 
+            t.innerText = m; 
+            t.style.display = 'block'; 
+            setTimeout(()=>t.style.display='none', 3000); 
+        }
+
+        function handleAIParse() { 
+            const input = document.getElementById('aiInput').value;
+            if(!input) return showToast("请输入内容");
+            showToast("AI 解析中..."); 
+            // 这里可以接入你的AI解析逻辑
+        }
+
+        function exportToExcel() {
+            const exportData = dataStore.map(i => ({
+                '系统': i.system,
+                '需求描述': i.description,
+                '负责人': i.owner,
+                '状态': i.status,
+                '计划完成时间': i.plan_time
+            }));
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "需求列表");
+            XLSX.writeFile(wb, `需求列表_${formatDate(new Date())}.xlsx`);
+        }
     </script>
 </body>
 </html>
